@@ -86,3 +86,25 @@ class TestWindowTitle:
         window._viewmodel.apply_cleaning(opts, window._plain_text_edit.toPlainText())
         qtbot.wait(10)
         assert "*" in window.ui.windowTitle(), "Star should persist after cleaning"
+
+
+class TestOrphanWidgets:
+    def test_unnamed_checkboxes_not_present(self, window):
+        from PySide6.QtWidgets import QCheckBox
+        for name in ("checkBox_2", "checkBox_4", "checkBox_6"):
+            assert window.ui.findChild(QCheckBox, name) is None, \
+                f"Orphan widget {name!r} should not exist"
+
+    def test_text_label_placeholders_not_present(self, window):
+        from PySide6.QtWidgets import QLabel
+        for name in ("label", "label_2"):
+            assert window.ui.findChild(QLabel, name) is None, \
+                f"Placeholder label {name!r} should not exist"
+
+
+class TestMergeTab:
+    def test_merge_tab_has_coming_soon_label(self, window):
+        from PySide6.QtWidgets import QLabel
+        label = window.ui.findChild(QLabel, "mergeComingSoonLabel")
+        assert label is not None
+        assert "coming soon" in label.text().lower()
