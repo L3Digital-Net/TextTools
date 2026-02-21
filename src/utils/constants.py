@@ -1,7 +1,7 @@
 """Utility functions and constants for the application."""
 
 # Application constants
-APP_NAME = "Template Desktop Application"
+APP_NAME = "TextTools"
 APP_VERSION = "1.0.0"
 
 # Configuration

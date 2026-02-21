@@ -1,86 +1,94 @@
-"""Integration tests for the application.
+"""Integration tests — real services, real models, mocked Qt.
 
-Integration tests verify that multiple components work together correctly.
-These tests may instantiate real objects instead of mocks.
+These tests verify the full stack (FileService → ViewModel → signal) without
+launching a real window. The view layer is excluded here; that's covered by
+qt-pilot GUI tests.
 """
+
 import pytest
-from src.services.example_service import ExampleService
+
+from src.models.cleaning_options import CleaningOptions
+from src.services.file_service import FileService
+from src.services.text_processing_service import TextProcessingService
 from src.viewmodels.main_viewmodel import MainViewModel
-from src.models.example_model import ExampleModel
 
 
-class TestApplicationIntegration:
-    """Integration tests for main application flow."""
+@pytest.fixture
+def file_svc():
+    return FileService()
 
-    @pytest.fixture
-    def service(self):
-        """Create a real service instance.
 
-        Returns:
-            ExampleService instance.
-        """
-        return ExampleService()
+@pytest.fixture
+def text_svc():
+    return TextProcessingService()
 
-    @pytest.fixture
-    def viewmodel(self, service, qapp):
-        """Create a ViewModel with real service.
 
-        Args:
-            service: Real ExampleService fixture.
-            qapp: QApplication fixture.
+@pytest.fixture
+def vm(file_svc, text_svc, qapp):
+    return MainViewModel(file_svc, text_svc)
 
-        Returns:
-            MainViewModel instance.
-        """
-        return MainViewModel(service)
 
-    def test_load_data_end_to_end(self, viewmodel, qtbot):
-        """Test loading data through the full stack.
+class TestLoadSaveWorkflow:
+    def test_load_real_file(self, vm, tmp_path, qtbot):
+        f = tmp_path / "sample.txt"
+        f.write_text("hello integration", encoding="utf-8")
 
-        This test verifies:
-        - ViewModel calls Service
-        - Service returns Models
-        - ViewModel processes Models
-        - ViewModel emits correct signals
-        """
-        # Arrange
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000) as blocker:
-            # Act
-            viewmodel.load_data()
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.load_file(str(f))
 
-        # Assert
-        display_items = blocker.args[0]
-        assert len(display_items) == 3  # Service returns 3 items
-        assert all(isinstance(item, str) for item in display_items)
+        assert blocker.args[0] == "hello integration"
 
-    def test_service_returns_valid_models(self, service):
-        """Test that service returns valid model instances."""
-        # Act
-        models = service.fetch_data()
+    def test_save_then_reload(self, vm, tmp_path, qtbot):
+        filepath = str(tmp_path / "out.txt")
 
-        # Assert
-        assert len(models) == 3
-        assert all(isinstance(model, ExampleModel) for model in models)
-        assert all(model.validate() for model in models)
+        with qtbot.waitSignal(vm.file_saved, timeout=1000):
+            vm.save_file(filepath, "saved content")
 
-    def test_full_workflow_with_real_components(self, viewmodel, qtbot):
-        """Test complete workflow: load, get details, clear.
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.load_file(filepath)
 
-        This test exercises the full application flow with real components.
-        """
-        # Act & Assert - Load data
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000):
-            viewmodel.load_data()
+        assert blocker.args[0] == "saved content"
 
-        # Act & Assert - Get details
-        with qtbot.waitSignal(viewmodel.status_changed, timeout=1000) as blocker:
-            viewmodel.get_item_details(0)
 
-        details = blocker.args[0]
-        assert "ID:" in details
+class TestCleaningWorkflow:
+    def test_load_then_clean_then_save(self, vm, tmp_path, qtbot):
+        f = tmp_path / "dirty.txt"
+        f.write_text("\n  hello    world  \n\n", encoding="utf-8")
 
-        # Act & Assert - Clear data
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000) as blocker:
-            viewmodel.clear_data()
+        # Load
+        with qtbot.waitSignal(vm.document_loaded):
+            vm.load_file(str(f))
 
-        assert blocker.args[0] == []
+        # Clean all options
+        opts = CleaningOptions(
+            trim_whitespace=True, clean_whitespace=True, remove_tabs=False
+        )
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.apply_cleaning(opts)
+
+        cleaned = blocker.args[0]
+        # trim_whitespace removes leading/trailing blank lines and trailing spaces per
+        # line but not leading spaces. clean_whitespace collapses runs of 2+ spaces to
+        # one. So "  hello    world" → " hello world" (leading two spaces → one).
+        assert cleaned == " hello world"
+
+        # Save cleaned result
+        save_path = str(tmp_path / "clean.txt")
+        with qtbot.waitSignal(vm.file_saved, timeout=1000):
+            vm.save_file(save_path, cleaned)
+
+        assert (tmp_path / "clean.txt").read_text(encoding="utf-8") == " hello world"
+
+
+class TestReplaceAllWorkflow:
+    def test_replace_all_end_to_end(self, vm, tmp_path, qtbot):
+        f = tmp_path / "replace.txt"
+        f.write_text("foo bar foo baz foo", encoding="utf-8")
+
+        with qtbot.waitSignal(vm.document_loaded):
+            vm.load_file(str(f))
+
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.replace_all("foo", "qux")
+
+        assert blocker.args[0] == "qux bar qux baz qux"

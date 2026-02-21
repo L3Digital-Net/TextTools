@@ -1,161 +1,135 @@
 """Unit tests for MainViewModel.
 
-These tests demonstrate:
-- Testing ViewModels with pytest-qt
-- Using mocks to isolate ViewModel from services
-- Testing signal emission
-- Testing error handling
+Services are mocked so these tests run without file system access.
+Uses qtbot (pytest-qt) for signal assertion.
 """
+
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import Mock
+
+from src.models.cleaning_options import CleaningOptions
+from src.models.text_document import TextDocument
 from src.viewmodels.main_viewmodel import MainViewModel
-from src.models.example_model import ExampleModel
 
 
-class TestMainViewModel:
-    """Test suite for MainViewModel."""
+@pytest.fixture
+def mock_file_svc():
+    svc = MagicMock()
+    svc.open_file.return_value = TextDocument(
+        filepath="/tmp/test.txt", content="hello world", encoding="utf-8"
+    )
+    return svc
 
-    @pytest.fixture
-    def mock_service(self, mocker):
-        """Create a mock service for testing.
 
-        Args:
-            mocker: pytest-mock fixture.
+@pytest.fixture
+def mock_text_svc():
+    svc = MagicMock()
+    svc.apply_options.return_value = "cleaned text"
+    return svc
 
-        Returns:
-            Mock service instance.
-        """
-        service = mocker.Mock()
-        service.fetch_data.return_value = [
-            ExampleModel(1, "Item 1", 100.0),
-            ExampleModel(2, "Item 2", 200.0),
-        ]
-        return service
 
-    @pytest.fixture
-    def viewmodel(self, mock_service, qapp):
-        """Create a ViewModel instance for testing.
+@pytest.fixture
+def vm(mock_file_svc, mock_text_svc, qapp):
+    return MainViewModel(mock_file_svc, mock_text_svc)
 
-        Args:
-            mock_service: Mock service fixture.
-            qapp: QApplication fixture.
 
-        Returns:
-            MainViewModel instance.
-        """
-        return MainViewModel(mock_service)
+class TestLoadFile:
+    def test_calls_file_service(self, vm, mock_file_svc):
+        vm.load_file("/tmp/test.txt")
+        mock_file_svc.open_file.assert_called_once_with("/tmp/test.txt")
 
-    def test_initialization(self, viewmodel):
-        """Test that ViewModel initializes correctly."""
-        # Assert
-        assert viewmodel is not None
-        assert hasattr(viewmodel, 'data_loaded')
-        assert hasattr(viewmodel, 'error_occurred')
-        assert hasattr(viewmodel, 'status_changed')
+    def test_emits_document_loaded_with_content(self, vm, qtbot):
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.load_file("/tmp/test.txt")
+        assert blocker.args[0] == "hello world"
 
-    def test_load_data_calls_service(self, viewmodel, mock_service):
-        """Test that load_data calls the service."""
-        # Act
-        viewmodel.load_data()
+    def test_emits_encoding_detected(self, vm, qtbot):
+        with qtbot.waitSignal(vm.encoding_detected, timeout=1000) as blocker:
+            vm.load_file("/tmp/test.txt")
+        assert blocker.args[0] == "utf-8"
 
-        # Assert
-        mock_service.fetch_data.assert_called_once()
+    def test_emits_error_on_file_not_found(self, vm, mock_file_svc, qtbot):
+        mock_file_svc.open_file.side_effect = FileNotFoundError("not found")
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.load_file("/tmp/missing.txt")
+        assert "Cannot open file" in blocker.args[0]
 
-    def test_load_data_emits_data_loaded_signal(self, viewmodel, qtbot):
-        """Test that load_data emits data_loaded signal."""
-        # Arrange
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000) as blocker:
-            # Act
-            viewmodel.load_data()
+    def test_emits_status_changed(self, vm, qtbot):
+        messages = []
+        vm.status_changed.connect(messages.append)
+        vm.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        assert any("test.txt" in m for m in messages)
 
-        # Assert
-        assert len(blocker.args[0]) == 2  # Two items loaded
 
-    def test_load_data_emits_status_changed_signal(self, viewmodel, qtbot):
-        """Test that load_data emits status_changed signal."""
-        # Arrange - collect all emitted signals
-        status_messages = []
-        viewmodel.status_changed.connect(lambda msg: status_messages.append(msg))
+class TestSaveFile:
+    def test_calls_file_service_save(self, vm, mock_file_svc, qtbot):
+        # Load first to set current encoding
+        vm.load_file("/tmp/test.txt")
+        vm.save_file("/tmp/out.txt", "content to save")
+        assert mock_file_svc.save_file.called
 
-        # Act
-        viewmodel.load_data()
-        qtbot.wait(10)  # Brief wait for all signals to process
+    def test_emits_file_saved_signal(self, vm, qtbot):
+        with qtbot.waitSignal(vm.file_saved, timeout=1000) as blocker:
+            vm.save_file("/tmp/out.txt", "content")
+        assert blocker.args[0] == "/tmp/out.txt"
 
-        # Assert - should have emitted loading and completion messages
-        assert len(status_messages) >= 2
-        assert "Loading data..." in status_messages[0]
-        assert "Loaded" in status_messages[1]
-        assert "items" in status_messages[1]
+    def test_emits_error_on_permission_denied(self, vm, mock_file_svc, qtbot):
+        mock_file_svc.save_file.side_effect = PermissionError("denied")
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.save_file("/tmp/out.txt", "content")
+        assert "Cannot save file" in blocker.args[0]
 
-    def test_load_data_handles_service_error(self, viewmodel, mock_service, qtbot):
-        """Test that load_data handles service errors gracefully."""
-        # Arrange
-        mock_service.fetch_data.side_effect = ConnectionError("Service unavailable")
 
-        with qtbot.waitSignal(viewmodel.error_occurred, timeout=1000) as blocker:
-            # Act
-            viewmodel.load_data()
+class TestApplyCleaning:
+    def test_calls_text_service_with_options(self, vm, mock_file_svc, mock_text_svc):
+        vm.load_file("/tmp/test.txt")
+        opts = CleaningOptions(trim_whitespace=True)
+        vm.apply_cleaning(opts)
+        mock_text_svc.apply_options.assert_called_once_with("hello world", opts)
 
-        # Assert
-        assert "Failed to load data" in blocker.args[0]
+    def test_emits_document_loaded_with_cleaned_text(self, vm, qtbot):
+        vm.load_file("/tmp/test.txt")
+        opts = CleaningOptions(trim_whitespace=True)
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.apply_cleaning(opts)
+        assert blocker.args[0] == "cleaned text"
 
-    def test_clear_data_emits_empty_list(self, viewmodel, qtbot):
-        """Test that clear_data emits empty list."""
-        # Arrange
-        viewmodel.load_data()  # Load some data first
+    def test_no_op_when_no_document_loaded(self, vm, mock_text_svc, qtbot):
+        vm.apply_cleaning(CleaningOptions(trim_whitespace=True))
+        mock_text_svc.apply_options.assert_not_called()
 
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000) as blocker:
-            # Act
-            viewmodel.clear_data()
 
-        # Assert
-        assert blocker.args[0] == []
+class TestReplaceAll:
+    def test_replaces_all_occurrences_in_content(self, vm, qtbot):
+        vm.load_file("/tmp/test.txt")  # content = "hello world"
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.replace_all("hello", "goodbye")
+        assert blocker.args[0] == "goodbye world"
 
-    def test_clear_data_emits_status_message(self, viewmodel, qtbot):
-        """Test that clear_data emits status message."""
-        # Arrange
-        with qtbot.waitSignal(viewmodel.status_changed, timeout=1000) as blocker:
-            # Act
-            viewmodel.clear_data()
+    def test_emits_status_with_count(self, vm, qtbot):
+        vm.load_file("/tmp/test.txt")
+        messages = []
+        vm.status_changed.connect(messages.append)
+        vm.replace_all("hello", "goodbye")
+        qtbot.wait(10)
+        assert any("1 occurrence" in m for m in messages)
 
-        # Assert
-        assert blocker.args[0] == "Data cleared"
+    def test_no_op_when_no_document(self, vm, qtbot):
+        # Should not emit document_loaded when no document
+        emitted = []
+        vm.document_loaded.connect(emitted.append)
+        vm.replace_all("x", "y")
+        qtbot.wait(10)
+        assert emitted == []
 
-    def test_get_item_details_emits_details(self, viewmodel, qtbot):
-        """Test that get_item_details emits item details."""
-        # Arrange
-        viewmodel.load_data()  # Load data first
-
-        with qtbot.waitSignal(viewmodel.status_changed, timeout=1000) as blocker:
-            # Act
-            viewmodel.get_item_details(0)
-
-        # Assert
-        details = blocker.args[0]
-        assert "ID:" in details
-        assert "Name:" in details
-        assert "Value:" in details
-
-    def test_get_item_details_handles_invalid_index(self, viewmodel, qtbot):
-        """Test that get_item_details handles invalid index gracefully."""
-        # Arrange
-        viewmodel.load_data()
-
-        # Act - should not crash or emit signal for invalid index
-        viewmodel.get_item_details(999)
-
-        # Assert - no exception raised, execution completes
-        assert True
-
-    def test_data_loaded_signal_contains_display_strings(self, viewmodel, qtbot):
-        """Test that data_loaded signal contains properly formatted strings."""
-        # Arrange
-        with qtbot.waitSignal(viewmodel.data_loaded, timeout=1000) as blocker:
-            # Act
-            viewmodel.load_data()
-
-        # Assert
-        display_items = blocker.args[0]
-        assert isinstance(display_items, list)
-        assert all(isinstance(item, str) for item in display_items)
-        assert "Item 1: 100.0" in display_items[0]
+    def test_no_op_for_empty_find_term(self, vm, qtbot):
+        vm.load_file("/tmp/test.txt")
+        emitted = []
+        vm.document_loaded.connect(emitted.append)
+        qtbot.wait(10)
+        emitted.clear()
+        vm.replace_all("", "replacement")
+        qtbot.wait(10)
+        assert emitted == []

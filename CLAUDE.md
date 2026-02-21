@@ -4,82 +4,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PySide6 desktop application template following MVVM architecture on Linux. Built with Python 3.14, Qt Designer for UI, and pytest for testing.
+TextTools is a PySide6 desktop application for text processing on Linux. Its planned features are encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management. **The MVVM framework and UI shell are in place, but all TextTools feature logic is unimplemented — the current source files are scaffolding/template code.** `DESIGN.md` is the authoritative spec for what needs to be built (UI mockups, widget objectNames, feature acceptance criteria, data flow diagrams).
+
+**Tech stack**: Python 3.14, PySide6 6.8.0+, MVVM architecture, Qt Designer for UI.
 
 ## Commands
 
 ```bash
-# Setup (first time)
-./setup.sh                  # Installs UV, creates .venv, installs deps
-source .venv/bin/activate
-
-# Run
+# Run the application
 python src/main.py
 
-# Test
-pytest tests/                                          # All tests
-pytest tests/unit/                                     # Unit tests only
-pytest tests/integration/                              # Integration tests only
-pytest tests/unit/test_example_model.py                # Single file
-pytest tests/unit/test_example_model.py::TestExampleModel::test_validate_returns_true_for_valid_data  # Single test
-pytest -k "test_pattern" tests/                        # By pattern
+# Run all tests (coverage is on by default via pyproject.toml addopts)
+pytest tests/
 
-# Code quality
-black src/ tests/           # Format
-isort src/ tests/           # Sort imports
-mypy src/                   # Type check (strict, Python 3.14)
+# Run a single test file
+pytest tests/unit/test_example_model.py
+
+# Run a single test case
+pytest tests/unit/test_example_model.py::TestExampleModel::test_validate_returns_true_for_valid_data
+
+# Run tests matching a pattern
+pytest -k "test_viewmodel" tests/
+
+# Type checking (strict mode configured in pyproject.toml)
+mypy src/
+
+# Formatting
+black src/ tests/
+isort src/ tests/
+
+# Dependency management (always use UV, not pip)
+uv pip install -r requirements.txt
+uv pip install <package-name>
 ```
 
-## Architecture (MVVM — strictly enforced)
+Coverage runs automatically with every `pytest` invocation — it produces terminal output and `htmlcov/` without extra flags.
 
-Data flows one direction: **Service → Model → ViewModel → View**
+## Architecture (MVVM — Strictly Enforced)
 
-Dependencies are injected via constructors in `src/main.py`:
 ```
-Service(created) → ViewModel(receives service) → View(receives viewmodel)
+View (src/views/)           → Loads .ui files, connects signals, updates UI
+    ↕ Qt Signals/Slots
+ViewModel (src/viewmodels/) → QObject subclass, emits signals, calls services
+    ↕ Method calls
+Service (src/services/)     → External I/O (files, APIs), injected into ViewModels
+    ↕ Method calls
+Model (src/models/)         → Pure Python dataclasses, business logic, validation
 ```
 
-### Layer rules
+**Dependency wiring**: `create_application()` in `src/main.py` is the sole composition root — it creates services, injects them into ViewModels, and injects ViewModels into Views. No layer constructs its own dependencies.
 
-| Layer | Location | Qt imports? | Purpose |
-|-------|----------|-------------|---------|
-| **Model** | `src/models/` | **NO** — pure Python | Business logic, validation, dataclasses |
-| **ViewModel** | `src/viewmodels/` | QObject + Signal only | Presentation logic, state via signals |
-| **View** | `src/views/` | Full PySide6 | Load `.ui` files, connect signals, minimal logic |
-| **Service** | `src/services/` | No | External operations, data fetching |
+### Layer Rules
 
-### UI: Qt Designer only — never hardcode layouts in Python
+| Layer | Allowed | Forbidden |
+|-------|---------|-----------|
+| **Model** | Pure Python, dataclasses, validation | Any Qt imports |
+| **ViewModel** | QObject, Signal/Slot, calling services | Direct widget manipulation |
+| **View** | Loading .ui files, findChild(), signal connections | Business logic, data validation |
+| **Service** | File I/O, external APIs | Qt imports, UI concerns |
 
-All UI is defined in `.ui` files under `src/views/ui/`, loaded at runtime via `QUiLoader`. Views access widgets with `self.ui.findChild(WidgetType, "objectName")`. Opening the designer: `designer src/views/ui/main_window.ui`
+### UI: Qt Designer Only
 
-### Signal/slot communication pattern
+All UI layouts live in `.ui` files under `src/views/ui/`. Views load them via `QUiLoader` and access widgets with `findChild(WidgetType, "objectName")`. The objectName strings that views must use are defined in **DESIGN.md Appendix A** — these must match exactly what is set in Qt Designer.
 
-ViewModels define signals (`data_loaded`, `error_occurred`, `status_changed`). Views connect their widget signals (e.g. `button.clicked`) to ViewModel slots, and observe ViewModel signals to update the UI. No direct method calls across layers.
+### ServiceProtocol Pattern
 
-### Dependency injection via Protocol
-
-Services are typed with `Protocol` from `typing`, not concrete classes. This allows mock injection in tests.
+Each ViewModel defines its own `ServiceProtocol` (using `typing.Protocol`) in the same file as the ViewModel, not in a separate module. This keeps the contract local to the consumer. See `src/viewmodels/main_viewmodel.py` for the reference implementation.
 
 ## Branch Protection
 
-- **`testing` branch**: All development happens here
-- **`main` branch**: Protected — only receives merges from `testing`
-- Before modifying files, verify branch: `git branch --show-current`
-- Git hooks enforce this (pre-commit blocks commits to main)
+- **All development happens on the `testing` branch** — never commit to `main`
+- `main` is protected by pre-commit hooks; only human-authorized merges allowed
+- Run `python .agents/branch_protection.py` before modifications if uncertain
 
-## Testing Conventions
+## Testing Patterns
 
-- Framework: pytest + pytest-qt + pytest-mock
-- Pattern: Arrange-Act-Assert
-- Qt tests use `qtbot` fixture and `qtbot.waitSignal()` for signal assertions
-- Session-scoped `qapp` fixture in `tests/conftest.py` provides QApplication
-- Coverage targets: Models 95%+, ViewModels 90%+
-- Coverage is configured in `pyproject.toml` (runs automatically with `pytest`)
+- Uses **pytest** with **pytest-qt** (provides `qtbot` fixture for signal testing)
+- Session-scoped `qapp` fixture in `tests/conftest.py` creates a single QApplication
+- Tests follow **Arrange-Act-Assert** pattern
+- Use `qtbot.waitSignal()` for testing signal emissions
+- ViewModels are tested with mock services (via pytest-mock); no Qt app needed for ViewModel-only tests
 
-## Configuration
+## Conventions
 
-All tool config lives in `pyproject.toml`:
-- **pytest**: `--cov=src`, verbose, strict markers
-- **mypy**: strict mode, Python 3.14, PySide6 imports ignored
-- **black**: line-length 88, target py314
-- **isort**: black-compatible profile
+- **Type hints**: Required on all functions (mypy strict mode)
+- **Docstrings**: Google-style on all public APIs
+- **Naming**: files `snake_case.py`, classes `PascalCase`, private `_leading_underscore`
+- **Signals for cross-layer communication**: Never call View methods from ViewModel directly
+- **Threading**: Long operations must use `QThread`; never block the UI thread
+- **Formatting**: Black (88 char lines), isort (black profile) — configured in `pyproject.toml`
