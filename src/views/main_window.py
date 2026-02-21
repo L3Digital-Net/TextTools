@@ -69,6 +69,8 @@ class MainWindow:
 
     def __init__(self, viewmodel: MainViewModel) -> None:
         self._viewmodel = viewmodel
+        # Display-only filepath — ViewModel owns document state; this is for the title bar.
+        self._filepath: str = ""
         self._load_ui()
         self._setup_file_tree()
         self._connect_signals()
@@ -212,6 +214,9 @@ class MainWindow:
         self._viewmodel.error_occurred.connect(self._on_error)
         self._viewmodel.status_changed.connect(self._on_status_changed)
 
+        # Title bar: update on every document content change
+        self._plain_text_edit.document().contentsChanged.connect(self._update_title)
+
     # ---------------------------------------------------------- user actions
 
     def _on_tree_item_clicked(self, index: QModelIndex) -> None:
@@ -302,16 +307,45 @@ class MainWindow:
             "Built with Python 3.14 and PySide6.",
         )
 
+    # ---------------------------------------------------------- title-bar helpers
+
+    def _set_editor_text(self, content: str) -> None:
+        """Replace editor content as a single undoable operation.
+
+        Uses QTextCursor.insertText instead of setPlainText to preserve the undo
+        stack — setPlainText resets it entirely.
+        """
+        cursor = self._plain_text_edit.textCursor()
+        cursor.select(cursor.SelectionType.Document)
+        cursor.insertText(content)
+
+    def _update_title(self) -> None:
+        """Reflect current filepath and modified state in the window title."""
+        name = os.path.basename(self._filepath) if self._filepath else ""
+        modified = self._plain_text_edit.document().isModified()
+        suffix = " *" if modified else ""
+        self.ui.setWindowTitle(f"TextTools — {name}{suffix}" if name else "TextTools")
+
     # ------------------------------------------ ViewModel signal handlers
 
     def _on_document_loaded(self, content: str) -> None:
-        self._plain_text_edit.setPlainText(content)
+        self._set_editor_text(content)
+        self._plain_text_edit.document().setModified(False)
+        # Prefer the filepath from the ViewModel's current document (the authoritative
+        # source after load_file). Fall back to the fileNameEdit text for cases where
+        # the document is loaded without going through load_file (e.g., legacy callers).
+        doc = self._viewmodel._current_document
+        self._filepath = doc.filepath if doc is not None else self._file_name_edit.text()
+        self._update_title()
 
     def _on_encoding_detected(self, encoding: str) -> None:
         self._encoding_label.setText(encoding)
 
     def _on_file_saved(self, filepath: str) -> None:
+        self._filepath = filepath
+        self._plain_text_edit.document().setModified(False)
         self.ui.statusBar().showMessage(f"Saved: {filepath}")
+        self._update_title()
 
     def _on_error(self, message: str) -> None:
         QMessageBox.critical(self.ui, "Error", message, QMessageBox.StandardButton.Ok)
