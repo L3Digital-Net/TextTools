@@ -210,3 +210,8 @@ __marimo__/
 .mcp.json
 .mcp.json.*
 .codex/
+
+# Internal tool configs — not for public consumption
+.contextstream/
+setup-branch-protection.sh
+.github/agents/
