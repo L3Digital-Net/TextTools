@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.models.cleaning_options import CleaningOptions
-from src.utils.constants import TEXT_FILE_EXTENSIONS
+from src.utils.constants import APP_VERSION, TEXT_FILE_EXTENSIONS
 from src.viewmodels.main_viewmodel import MainViewModel
 
 _W = TypeVar("_W")
@@ -294,11 +294,12 @@ class MainWindow:
 
     def _on_action_open(self) -> None:
         """Open a file dialog and load the selected file."""
+        _glob = " ".join(TEXT_FILE_EXTENSIONS)
         path, _ = QFileDialog.getOpenFileName(
             self.ui,
             "Open File",
             QDir.homePath(),
-            "Text Files (*.txt *.md *.csv *.log *.json *.yaml *.yml *.xml *.py *.sh *.conf *.ini *.toml);;All Files (*)",
+            f"Text Files ({_glob});;All Files (*)",
         )
         if path:
             self._file_name_edit.setText(path)
@@ -309,7 +310,7 @@ class MainWindow:
         QMessageBox.about(
             self.ui,
             "About TextTools",
-            "TextTools v0.2.0\n\nText processing utility: encoding detection, "
+            f"TextTools v{APP_VERSION}\n\nText processing utility: encoding detection, "
             "whitespace cleaning, find/replace, and file management.\n\n"
             "Built with Python 3.14 and PySide6.",
         )
