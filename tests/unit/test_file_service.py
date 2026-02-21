@@ -1,7 +1,9 @@
 """Unit tests for FileService — uses tmp_path, no Qt required."""
+
 import pytest
-from src.services.file_service import FileService
+
 from src.models.text_document import TextDocument
+from src.services.file_service import FileService
 
 
 @pytest.fixture

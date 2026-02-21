@@ -1,4 +1,5 @@
 """Unit tests for CleaningOptions model."""
+
 from src.models.cleaning_options import CleaningOptions
 
 

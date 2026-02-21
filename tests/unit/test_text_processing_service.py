@@ -1,7 +1,9 @@
 """Unit tests for TextProcessingService — no Qt required."""
+
 import pytest
-from src.services.text_processing_service import TextProcessingService
+
 from src.models.cleaning_options import CleaningOptions
+from src.services.text_processing_service import TextProcessingService
 
 
 @pytest.fixture

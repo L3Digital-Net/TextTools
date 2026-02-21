@@ -1,4 +1,5 @@
 """Pytest configuration and shared fixtures for TextTools test suite."""
+
 import pytest
 from PySide6.QtWidgets import QApplication
 

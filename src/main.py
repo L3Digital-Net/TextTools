@@ -3,6 +3,7 @@
 Creates services → injects into ViewModel → injects into View.
 This is the only place in the app where concrete types are instantiated.
 """
+
 import logging
 import sys
 
@@ -12,7 +13,6 @@ from src.services.file_service import FileService
 from src.services.text_processing_service import TextProcessingService
 from src.viewmodels.main_viewmodel import MainViewModel
 from src.views.main_window import MainWindow
-
 
 logging.basicConfig(
     level=logging.INFO,
