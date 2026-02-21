@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.models.cleaning_options import CleaningOptions
+from src.utils.constants import TEXT_FILE_EXTENSIONS
 from src.viewmodels.main_viewmodel import MainViewModel
 
 _W = TypeVar("_W")
@@ -165,6 +166,8 @@ class MainWindow:
         """Configure QFileSystemModel rooted at the user's home directory."""
         self._fs_model = QFileSystemModel(self.ui)
         self._fs_model.setRootPath(QDir.homePath())
+        self._fs_model.setNameFilters(TEXT_FILE_EXTENSIONS)
+        self._fs_model.setNameFilterDisables(False)  # hide non-matches (not just grey them)
         self._file_tree_view.setModel(self._fs_model)
         self._file_tree_view.setRootIndex(self._fs_model.index(QDir.homePath()))
         # Hide size/type/date columns — name column only
