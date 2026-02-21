@@ -209,13 +209,17 @@ class MainWindow:
 
         # ViewModel → View
         self._viewmodel.document_loaded.connect(self._on_document_loaded)
+        self._viewmodel.content_updated.connect(self._on_content_updated)
         self._viewmodel.encoding_detected.connect(self._on_encoding_detected)
         self._viewmodel.file_saved.connect(self._on_file_saved)
         self._viewmodel.error_occurred.connect(self._on_error)
         self._viewmodel.status_changed.connect(self._on_status_changed)
 
-        # Title bar: update on every document content change
-        self._plain_text_edit.document().contentsChanged.connect(self._update_title)
+        # Title bar: modificationChanged fires only when isModified() flips, not on
+        # every keystroke — avoids redundant title repaints and gives a clean signal.
+        self._plain_text_edit.document().modificationChanged.connect(
+            lambda _: self._update_title()
+        )
 
     # ---------------------------------------------------------- user actions
 
@@ -336,6 +340,14 @@ class MainWindow:
         # keeps the View in its own layer — never access ViewModel private state.
         self._filepath = self._file_name_edit.text()
         self._update_title()
+
+    def _on_content_updated(self, content: str) -> None:
+        """Handle in-place text transformation (cleaning, replace-all).
+
+        Does NOT clear the modified flag or update _filepath — content was
+        transformed, not loaded fresh from disk.
+        """
+        self._set_editor_text(content)
 
     def _on_encoding_detected(self, encoding: str) -> None:
         self._encoding_label.setText(encoding)

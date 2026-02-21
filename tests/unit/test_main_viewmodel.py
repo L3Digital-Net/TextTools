@@ -89,10 +89,10 @@ class TestApplyCleaning:
         vm.apply_cleaning(opts)
         mock_text_svc.apply_options.assert_called_once_with("hello world", opts)
 
-    def test_emits_document_loaded_with_cleaned_text(self, vm, qtbot):
+    def test_emits_content_updated_with_cleaned_text(self, vm, qtbot):
         vm.load_file("/tmp/test.txt")
         opts = CleaningOptions(trim_whitespace=True)
-        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+        with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.apply_cleaning(opts)
         assert blocker.args[0] == "cleaned text"
 
@@ -112,7 +112,7 @@ class TestApplyCleaning:
 class TestReplaceAll:
     def test_replaces_all_occurrences_in_content(self, vm, qtbot):
         vm.load_file("/tmp/test.txt")  # content = "hello world"
-        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+        with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.replace_all("hello", "goodbye")
         assert blocker.args[0] == "goodbye world"
 
@@ -125,9 +125,9 @@ class TestReplaceAll:
         assert any("1 occurrence" in m for m in messages)
 
     def test_no_op_when_no_document(self, vm, qtbot):
-        # Should not emit document_loaded when no document
+        # Should not emit content_updated when no document
         emitted = []
-        vm.document_loaded.connect(emitted.append)
+        vm.content_updated.connect(emitted.append)
         vm.replace_all("x", "y")
         qtbot.wait(10)
         assert emitted == []
@@ -135,7 +135,7 @@ class TestReplaceAll:
     def test_no_op_for_empty_find_term(self, vm, qtbot):
         vm.load_file("/tmp/test.txt")
         emitted = []
-        vm.document_loaded.connect(emitted.append)
+        vm.content_updated.connect(emitted.append)
         qtbot.wait(10)
         emitted.clear()
         vm.replace_all("", "replacement")
@@ -145,6 +145,6 @@ class TestReplaceAll:
     def test_replace_all_uses_current_text_when_provided(self, vm, qtbot):
         """replace_all should operate on the passed text, not _current_document.content."""
         vm.load_file("/tmp/test.txt")  # loads "hello world"
-        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+        with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.replace_all("hello", "goodbye", current_text="hello hello")
         assert blocker.args[0] == "goodbye goodbye"

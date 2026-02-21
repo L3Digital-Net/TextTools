@@ -37,6 +37,9 @@ class MainViewModel(QObject):
 
     Signals:
         document_loaded: Emitted with decoded file content ready for the editor.
+            Only load_file emits this — clears the modified flag in the View.
+        content_updated: Emitted by apply_cleaning and replace_all.
+            In-memory transformations only — the View must NOT clear the modified flag.
         encoding_detected: Emitted with encoding name on file open.
         file_saved: Emitted with filepath after a successful save.
         error_occurred: Emitted with error message on any failure.
@@ -44,6 +47,7 @@ class MainViewModel(QObject):
     """
 
     document_loaded = Signal(str)
+    content_updated = Signal(str)  # emitted by apply_cleaning and replace_all
     encoding_detected = Signal(str)
     file_saved = Signal(str)
     error_occurred = Signal(str)
@@ -124,7 +128,7 @@ class MainViewModel(QObject):
             encoding=self._current_document.encoding,
             modified=True,
         )
-        self.document_loaded.emit(cleaned)
+        self.content_updated.emit(cleaned)
         self.status_changed.emit("Text cleaned")
 
     def replace_all(
@@ -156,6 +160,6 @@ class MainViewModel(QObject):
             encoding=self._current_document.encoding,
             modified=True,
         )
-        self.document_loaded.emit(new_content)
+        self.content_updated.emit(new_content)
         noun = "occurrence" if count == 1 else "occurrences"
         self.status_changed.emit(f"Replaced {count} {noun}")

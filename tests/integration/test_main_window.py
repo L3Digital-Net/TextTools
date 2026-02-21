@@ -1,8 +1,10 @@
 """Integration tests for MainWindow view layer signal wiring and UI state."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
+from src.models.cleaning_options import CleaningOptions
 from src.models.text_document import TextDocument
 from src.viewmodels.main_viewmodel import MainViewModel
 from src.views.main_window import MainWindow
@@ -68,3 +70,19 @@ class TestWindowTitle:
         window._viewmodel.file_saved.emit("/tmp/test.txt")
         qtbot.wait(10)
         assert "*" not in window.ui.windowTitle()
+
+    def test_title_keeps_star_after_cleaning(self, window, mock_text_svc, qtbot):
+        """Cleaning (content_updated) must not clear the modified flag."""
+        window._file_name_edit.setText("/tmp/test.txt")
+        window._viewmodel.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        # Simulate a user edit
+        cursor = window._plain_text_edit.textCursor()
+        cursor.insertText("X")
+        qtbot.wait(10)
+        assert "*" in window.ui.windowTitle()
+        # Apply cleaning — this must NOT clear the star
+        opts = CleaningOptions(trim_whitespace=True)
+        window._viewmodel.apply_cleaning(opts, window._plain_text_edit.toPlainText())
+        qtbot.wait(10)
+        assert "*" in window.ui.windowTitle(), "Star should persist after cleaning"

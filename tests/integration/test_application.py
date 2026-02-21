@@ -63,7 +63,7 @@ class TestCleaningWorkflow:
         opts = CleaningOptions(
             trim_whitespace=True, clean_whitespace=True, remove_tabs=False
         )
-        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+        with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.apply_cleaning(opts)
 
         cleaned = blocker.args[0]
@@ -88,7 +88,7 @@ class TestReplaceAllWorkflow:
         with qtbot.waitSignal(vm.document_loaded):
             vm.load_file(str(f))
 
-        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+        with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.replace_all("foo", "qux")
 
         assert blocker.args[0] == "qux bar qux baz qux"
