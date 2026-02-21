@@ -48,8 +48,8 @@ def main():
     logger.info("Starting application")
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Template Desktop Application")
-    app.setOrganizationName("YourOrganization")
+    app.setApplicationName("TextTools")
+    app.setOrganizationName("TextTools")
 
     main_window = create_application()
     main_window.show()

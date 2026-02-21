@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TextTools is a PySide6 desktop application for text processing on Linux. It provides encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management. The project is in early development — the MVVM framework and UI shell are in place, but feature logic is mostly unimplemented (template/example code exists as scaffolding).
+TextTools is a PySide6 desktop application for text processing on Linux. Its planned features are encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management. **The MVVM framework and UI shell are in place, but all TextTools feature logic is unimplemented — the current source files are scaffolding/template code.** `DESIGN.md` is the authoritative spec for what needs to be built (UI mockups, widget objectNames, feature acceptance criteria, data flow diagrams).
 
 **Tech stack**: Python 3.14, PySide6 6.8.0+, MVVM architecture, Qt Designer for UI.
 
@@ -14,7 +14,7 @@ TextTools is a PySide6 desktop application for text processing on Linux. It prov
 # Run the application
 python src/main.py
 
-# Run all tests (coverage enabled by default via pyproject.toml)
+# Run all tests (coverage is on by default via pyproject.toml addopts)
 pytest tests/
 
 # Run a single test file
@@ -38,12 +38,12 @@ uv pip install -r requirements.txt
 uv pip install <package-name>
 ```
 
+Coverage runs automatically with every `pytest` invocation — it produces terminal output and `htmlcov/` without extra flags.
+
 ## Architecture (MVVM — Strictly Enforced)
 
-The codebase follows a strict MVVM pattern with dependency injection. Layer boundaries are non-negotiable:
-
 ```
-View (src/views/)          → Loads .ui files, connects signals, updates UI
+View (src/views/)           → Loads .ui files, connects signals, updates UI
     ↕ Qt Signals/Slots
 ViewModel (src/viewmodels/) → QObject subclass, emits signals, calls services
     ↕ Method calls
@@ -52,7 +52,7 @@ Service (src/services/)     → External I/O (files, APIs), injected into ViewMo
 Model (src/models/)         → Pure Python dataclasses, business logic, validation
 ```
 
-**Dependency flow**: `main.py` creates Services → injects into ViewModels → injects into Views. See `create_application()` in `src/main.py`.
+**Dependency wiring**: `create_application()` in `src/main.py` is the sole composition root — it creates services, injects them into ViewModels, and injects ViewModels into Views. No layer constructs its own dependencies.
 
 ### Layer Rules
 
@@ -65,7 +65,11 @@ Model (src/models/)         → Pure Python dataclasses, business logic, validat
 
 ### UI: Qt Designer Only
 
-All UI layouts are defined in `.ui` files under `src/views/ui/` — **never hardcode layouts in Python**. Views load them via `QUiLoader` and access widgets with `findChild()` using the objectName from Qt Designer.
+All UI layouts live in `.ui` files under `src/views/ui/`. Views load them via `QUiLoader` and access widgets with `findChild(WidgetType, "objectName")`. The objectName strings that views must use are defined in **DESIGN.md Appendix A** — these must match exactly what is set in Qt Designer.
+
+### ServiceProtocol Pattern
+
+Each ViewModel defines its own `ServiceProtocol` (using `typing.Protocol`) in the same file as the ViewModel, not in a separate module. This keeps the contract local to the consumer. See `src/viewmodels/main_viewmodel.py` for the reference implementation.
 
 ## Branch Protection
 
@@ -79,18 +83,13 @@ All UI layouts are defined in `.ui` files under `src/views/ui/` — **never hard
 - Session-scoped `qapp` fixture in `tests/conftest.py` creates a single QApplication
 - Tests follow **Arrange-Act-Assert** pattern
 - Use `qtbot.waitSignal()` for testing signal emissions
-- ViewModels are tested with mock services (via pytest-mock)
-
-## Key Design Document
-
-`DESIGN.md` contains the full application specification (~10K words) including UI mockups, widget objectNames (Appendix A), color scheme (Appendix B), feature acceptance criteria, and data flow diagrams. **Consult this before implementing any feature.**
+- ViewModels are tested with mock services (via pytest-mock); no Qt app needed for ViewModel-only tests
 
 ## Conventions
 
 - **Type hints**: Required on all functions (mypy strict mode)
 - **Docstrings**: Google-style on all public APIs
 - **Naming**: files `snake_case.py`, classes `PascalCase`, private `_leading_underscore`
-- **Dependency injection**: Services use `typing.Protocol` for interfaces; inject via constructor
 - **Signals for cross-layer communication**: Never call View methods from ViewModel directly
 - **Threading**: Long operations must use `QThread`; never block the UI thread
 - **Formatting**: Black (88 char lines), isort (black profile) — configured in `pyproject.toml`
