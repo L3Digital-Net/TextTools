@@ -17,9 +17,12 @@ import os
 from typing import TypeVar, cast
 
 from PySide6.QtCore import QDir, QFile, QModelIndex
+from PySide6.QtGui import QAction
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
+    QFileDialog,
     QFileSystemModel,
     QLabel,
     QLineEdit,
@@ -31,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.models.cleaning_options import CleaningOptions
+from src.utils.constants import APP_VERSION, TEXT_FILE_EXTENSIONS
 from src.viewmodels.main_viewmodel import MainViewModel
 
 _W = TypeVar("_W")
@@ -66,6 +70,8 @@ class MainWindow:
 
     def __init__(self, viewmodel: MainViewModel) -> None:
         self._viewmodel = viewmodel
+        # Display-only filepath — ViewModel owns document state; this is for the title bar.
+        self._filepath: str = ""
         self._load_ui()
         self._setup_file_tree()
         self._connect_signals()
@@ -137,11 +143,31 @@ class MainWindow:
             self.ui.findChild(QPushButton, "convertEncodingButton"),
             "convertEncodingButton",
         )
+        self._action_quit = _require(
+            self.ui.findChild(QAction, "actionQuit"), "actionQuit"
+        )
+        self._action_save = _require(
+            self.ui.findChild(QAction, "actionSave"), "actionSave"
+        )
+        self._action_open = _require(
+            self.ui.findChild(QAction, "actionOpen"), "actionOpen"
+        )
+        self._action_save_as = _require(
+            self.ui.findChild(QAction, "actionSave_as"), "actionSave_as"
+        )
+        self._action_about = _require(
+            self.ui.findChild(QAction, "actionAbout"), "actionAbout"
+        )
+        self._action_preferences = _require(
+            self.ui.findChild(QAction, "actionPreferences"), "actionPreferences"
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
         self._fs_model = QFileSystemModel(self.ui)
         self._fs_model.setRootPath(QDir.homePath())
+        self._fs_model.setNameFilters(TEXT_FILE_EXTENSIONS)
+        self._fs_model.setNameFilterDisables(False)  # hide non-matches (not just grey them)
         self._file_tree_view.setModel(self._fs_model)
         self._file_tree_view.setRootIndex(self._fs_model.index(QDir.homePath()))
         # Hide size/type/date columns — name column only
@@ -172,12 +198,31 @@ class MainWindow:
             lambda: self.ui.statusBar().showMessage("Encoding conversion — coming soon")
         )
 
+        # Menu actions
+        self._action_quit.triggered.connect(QApplication.quit)
+        self._action_save.triggered.connect(self._on_save_clicked)
+        self._action_open.triggered.connect(self._on_action_open)
+        self._action_save_as.triggered.connect(
+            lambda: self.ui.statusBar().showMessage("Save As — coming soon")
+        )
+        self._action_about.triggered.connect(self._on_action_about)
+        self._action_preferences.triggered.connect(
+            lambda: self.ui.statusBar().showMessage("Preferences — coming soon")
+        )
+
         # ViewModel → View
         self._viewmodel.document_loaded.connect(self._on_document_loaded)
+        self._viewmodel.content_updated.connect(self._on_content_updated)
         self._viewmodel.encoding_detected.connect(self._on_encoding_detected)
         self._viewmodel.file_saved.connect(self._on_file_saved)
         self._viewmodel.error_occurred.connect(self._on_error)
         self._viewmodel.status_changed.connect(self._on_status_changed)
+
+        # Title bar: modificationChanged fires only when isModified() flips, not on
+        # every keystroke — avoids redundant title repaints and gives a clean signal.
+        self._plain_text_edit.document().modificationChanged.connect(
+            lambda _: self._update_title()
+        )
 
     # ---------------------------------------------------------- user actions
 
@@ -201,13 +246,16 @@ class MainWindow:
         self._viewmodel.save_file(filepath, self._plain_text_edit.toPlainText())
 
     def _on_clean_requested(self) -> None:
-        """Build CleaningOptions from checkbox states; delegate to ViewModel."""
+        """Build CleaningOptions from checkbox states; delegate to ViewModel.
+
+        Passes live editor text so user edits made since file-load are not lost.
+        """
         options = CleaningOptions(
             trim_whitespace=self._trim_cb.isChecked(),
             clean_whitespace=self._clean_cb.isChecked(),
             remove_tabs=self._remove_tabs_cb.isChecked(),
         )
-        self._viewmodel.apply_cleaning(options)
+        self._viewmodel.apply_cleaning(options, self._plain_text_edit.toPlainText())
 
     def _on_find_clicked(self) -> None:
         """Find next occurrence of the search term in the editor."""
@@ -234,19 +282,85 @@ class MainWindow:
         self._on_find_clicked()
 
     def _on_replace_all_clicked(self) -> None:
-        """Delegate replace-all to ViewModel (operates on stored content)."""
-        self._viewmodel.replace_all(self._find_edit.text(), self._replace_edit.text())
+        """Delegate replace-all to ViewModel, passing live editor text.
+
+        Passes live editor text so user edits made since file-load are not lost.
+        """
+        self._viewmodel.replace_all(
+            self._find_edit.text(),
+            self._replace_edit.text(),
+            self._plain_text_edit.toPlainText(),
+        )
+
+    def _on_action_open(self) -> None:
+        """Open a file dialog and load the selected file."""
+        _glob = " ".join(TEXT_FILE_EXTENSIONS)
+        path, _ = QFileDialog.getOpenFileName(
+            self.ui,
+            "Open File",
+            QDir.homePath(),
+            f"Text Files ({_glob});;All Files (*)",
+        )
+        if path:
+            self._file_name_edit.setText(path)
+            self._viewmodel.load_file(path)
+
+    def _on_action_about(self) -> None:
+        """Show an About dialog."""
+        QMessageBox.about(
+            self.ui,
+            "About TextTools",
+            f"TextTools v{APP_VERSION}\n\nText processing utility: encoding detection, "
+            "whitespace cleaning, find/replace, and file management.\n\n"
+            "Built with Python 3.14 and PySide6.",
+        )
+
+    # ---------------------------------------------------------- title-bar helpers
+
+    def _set_editor_text(self, content: str) -> None:
+        """Replace editor content as a single undoable operation.
+
+        Uses QTextCursor.insertText instead of setPlainText to preserve the undo
+        stack — setPlainText resets it entirely.
+        """
+        cursor = self._plain_text_edit.textCursor()
+        cursor.select(cursor.SelectionType.Document)
+        cursor.insertText(content)
+
+    def _update_title(self) -> None:
+        """Reflect current filepath and modified state in the window title."""
+        name = os.path.basename(self._filepath) if self._filepath else ""
+        modified = self._plain_text_edit.document().isModified()
+        suffix = " *" if modified else ""
+        self.ui.setWindowTitle(f"TextTools — {name}{suffix}" if name else "TextTools")
 
     # ------------------------------------------ ViewModel signal handlers
 
     def _on_document_loaded(self, content: str) -> None:
-        self._plain_text_edit.setPlainText(content)
+        self._set_editor_text(content)
+        self._plain_text_edit.document().setModified(False)
+        # fileNameEdit is always populated before load_file is called (see
+        # _on_tree_item_clicked and _on_action_open). Reading the widget here
+        # keeps the View in its own layer — never access ViewModel private state.
+        self._filepath = self._file_name_edit.text()
+        self._update_title()
+
+    def _on_content_updated(self, content: str) -> None:
+        """Handle in-place text transformation (cleaning, replace-all).
+
+        Does NOT clear the modified flag or update _filepath — content was
+        transformed, not loaded fresh from disk.
+        """
+        self._set_editor_text(content)
 
     def _on_encoding_detected(self, encoding: str) -> None:
         self._encoding_label.setText(encoding)
 
     def _on_file_saved(self, filepath: str) -> None:
+        self._filepath = filepath
+        self._plain_text_edit.document().setModified(False)
         self.ui.statusBar().showMessage(f"Saved: {filepath}")
+        self._update_title()
 
     def _on_error(self, message: str) -> None:
         QMessageBox.critical(self.ui, "Error", message, QMessageBox.StandardButton.Ok)

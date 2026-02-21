@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 
 from src.services.file_service import FileService
 from src.services.text_processing_service import TextProcessingService
+from src.utils.constants import APP_NAME, APP_VERSION
 from src.viewmodels.main_viewmodel import MainViewModel
 from src.views.main_window import MainWindow
 
@@ -35,8 +36,9 @@ def main() -> None:
     """Application entry point."""
     logger.info("Starting TextTools")
     app = QApplication(sys.argv)
-    app.setApplicationName("TextTools")
-    app.setOrganizationName("TextTools")
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(APP_VERSION)
+    app.setOrganizationName(APP_NAME)
 
     window = create_application()
     window.show()

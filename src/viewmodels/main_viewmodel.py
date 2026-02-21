@@ -37,21 +37,21 @@ class MainViewModel(QObject):
 
     Signals:
         document_loaded: Emitted with decoded file content ready for the editor.
+            Only load_file emits this — clears the modified flag in the View.
+        content_updated: Emitted by apply_cleaning and replace_all.
+            In-memory transformations only — the View must NOT clear the modified flag.
         encoding_detected: Emitted with encoding name on file open.
         file_saved: Emitted with filepath after a successful save.
         error_occurred: Emitted with error message on any failure.
         status_changed: Emitted with status bar text.
-        find_requested: Emitted with search term; view performs the find.
-        replace_requested: Emitted with (find, replace); view performs the replace.
     """
 
     document_loaded = Signal(str)
+    content_updated = Signal(str)  # emitted by apply_cleaning and replace_all
     encoding_detected = Signal(str)
     file_saved = Signal(str)
     error_occurred = Signal(str)
     status_changed = Signal(str)
-    find_requested = Signal(str)
-    replace_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -99,36 +99,59 @@ class MainViewModel(QObject):
             self.error_occurred.emit(msg)
             self.status_changed.emit("Error saving file")
 
-    @Slot(object)
-    def apply_cleaning(self, options: CleaningOptions) -> None:
-        """Apply text cleaning to current document content.
+    def apply_cleaning(
+        self, options: CleaningOptions, current_text: str | None = None
+    ) -> None:
+        """Apply text cleaning to the given text or current document content.
+
+        Args:
+            options: Cleaning flags to apply.
+            current_text: Live editor text from the View. When provided, takes
+                precedence over _current_document.content so user edits typed
+                after file-load are not discarded. When None, falls back to the
+                last-loaded document content (backward-compatible default).
 
         No-op when no document is loaded.
         """
         if self._current_document is None:
             self.status_changed.emit("No document loaded")
             return
-        cleaned = self._text_service.apply_options(
-            self._current_document.content, options
+        # Prefer live editor text over stale document state — avoids overwriting
+        # user edits when a cleaning checkbox is toggled after in-editor typing.
+        content = (
+            current_text if current_text is not None else self._current_document.content
         )
+        cleaned = self._text_service.apply_options(content, options)
         self._current_document = TextDocument(
             filepath=self._current_document.filepath,
             content=cleaned,
             encoding=self._current_document.encoding,
             modified=True,
         )
-        self.document_loaded.emit(cleaned)
+        self.content_updated.emit(cleaned)
         self.status_changed.emit("Text cleaned")
 
-    @Slot(str, str)
-    def replace_all(self, find_term: str, replace_term: str) -> None:
-        """Replace all occurrences of find_term in current document content.
+    def replace_all(
+        self, find_term: str, replace_term: str, current_text: str | None = None
+    ) -> None:
+        """Replace all occurrences of find_term in the given text or current document.
+
+        Args:
+            find_term: String to search for.
+            replace_term: String to substitute.
+            current_text: Live editor text from the View. When provided, takes
+                precedence over _current_document.content so user edits typed
+                after file-load are not discarded. When None, falls back to the
+                last-loaded document content (backward-compatible default).
 
         No-op when no document is loaded or find_term is empty.
         """
         if self._current_document is None or not find_term:
             return
-        content = self._current_document.content
+        # Prefer live editor text over stale document state — mirrors apply_cleaning.
+        content = (
+            current_text if current_text is not None else self._current_document.content
+        )
         count = content.count(find_term)
         new_content = content.replace(find_term, replace_term)
         self._current_document = TextDocument(
@@ -137,16 +160,6 @@ class MainViewModel(QObject):
             encoding=self._current_document.encoding,
             modified=True,
         )
-        self.document_loaded.emit(new_content)
+        self.content_updated.emit(new_content)
         noun = "occurrence" if count == 1 else "occurrences"
         self.status_changed.emit(f"Replaced {count} {noun}")
-
-    @Slot(str)
-    def request_find(self, term: str) -> None:
-        """Signal the view to find the next occurrence of term."""
-        self.find_requested.emit(term)
-
-    @Slot(str, str)
-    def request_replace(self, find_term: str, replace_term: str) -> None:
-        """Signal the view to replace the current selection."""
-        self.replace_requested.emit(find_term, replace_term)
