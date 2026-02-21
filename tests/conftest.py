@@ -1,37 +1,15 @@
-"""Pytest configuration and shared fixtures.
-
-This file contains fixtures that are available to all test files.
-"""
+"""Pytest configuration and shared fixtures for TextTools test suite."""
 import pytest
 from PySide6.QtWidgets import QApplication
 
 
 @pytest.fixture(scope="session")
 def qapp():
-    """Create QApplication instance for tests.
+    """Provide a single QApplication instance for the entire test session.
 
-    This fixture is session-scoped, meaning one QApplication
-    is created for all tests and reused.
-
-    Yields:
-        QApplication instance.
+    Session-scoped because Qt allows only one QApplication per process.
     """
     app = QApplication.instance()
     if app is None:
         app = QApplication([])
     yield app
-
-
-@pytest.fixture
-def example_model_data():
-    """Provide example model data for tests.
-
-    Returns:
-        Dictionary with sample model data.
-    """
-    return {
-        "id": 1,
-        "name": "Test Item",
-        "value": 100.0,
-        "description": "Test description"
-    }
