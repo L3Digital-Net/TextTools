@@ -11,7 +11,7 @@ Signal flow:
 
 import os
 
-from PySide6.QtCore import QDir, QFile
+from PySide6.QtCore import QDir, QFile, QModelIndex
 from PySide6.QtGui import QFileSystemModel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
 
     # ---------------------------------------------------------- user actions
 
-    def _on_tree_item_clicked(self, index) -> None:  # type: ignore[override]
+    def _on_tree_item_clicked(self, index: QModelIndex) -> None:
         """Load file on tree click; ignore directory clicks."""
         path = self._fs_model.filePath(index)
         if os.path.isfile(path):
