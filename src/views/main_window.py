@@ -17,9 +17,12 @@ import os
 from typing import TypeVar, cast
 
 from PySide6.QtCore import QDir, QFile, QModelIndex
+from PySide6.QtGui import QAction
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
+    QFileDialog,
     QFileSystemModel,
     QLabel,
     QLineEdit,
@@ -137,6 +140,21 @@ class MainWindow:
             self.ui.findChild(QPushButton, "convertEncodingButton"),
             "convertEncodingButton",
         )
+        self._action_quit = _require(
+            self.ui.findChild(QAction, "actionQuit"), "actionQuit"
+        )
+        self._action_save = _require(
+            self.ui.findChild(QAction, "actionSave"), "actionSave"
+        )
+        self._action_open = _require(
+            self.ui.findChild(QAction, "actionOpen"), "actionOpen"
+        )
+        self._action_save_as = _require(
+            self.ui.findChild(QAction, "actionSave_as"), "actionSave_as"
+        )
+        self._action_about = _require(
+            self.ui.findChild(QAction, "actionAbout"), "actionAbout"
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
@@ -171,6 +189,15 @@ class MainWindow:
         self._convert_button.clicked.connect(
             lambda: self.ui.statusBar().showMessage("Encoding conversion — coming soon")
         )
+
+        # Menu actions
+        self._action_quit.triggered.connect(QApplication.quit)
+        self._action_save.triggered.connect(self._on_save_clicked)
+        self._action_open.triggered.connect(self._on_action_open)
+        self._action_save_as.triggered.connect(
+            lambda: self.ui.statusBar().showMessage("Save As — coming soon")
+        )
+        self._action_about.triggered.connect(self._on_action_about)
 
         # ViewModel → View
         self._viewmodel.document_loaded.connect(self._on_document_loaded)
@@ -245,6 +272,28 @@ class MainWindow:
             self._find_edit.text(),
             self._replace_edit.text(),
             self._plain_text_edit.toPlainText(),
+        )
+
+    def _on_action_open(self) -> None:
+        """Open a file dialog and load the selected file."""
+        path, _ = QFileDialog.getOpenFileName(
+            self.ui,
+            "Open File",
+            QDir.homePath(),
+            "Text Files (*.txt *.md *.csv *.log *.json *.yaml *.yml *.xml *.py *.sh *.conf *.ini *.toml);;All Files (*)",
+        )
+        if path:
+            self._file_name_edit.setText(path)
+            self._viewmodel.load_file(path)
+
+    def _on_action_about(self) -> None:
+        """Show an About dialog."""
+        QMessageBox.about(
+            self.ui,
+            "About TextTools",
+            "TextTools v0.2.0\n\nText processing utility: encoding detection, "
+            "whitespace cleaning, find/replace, and file management.\n\n"
+            "Built with Python 3.14 and PySide6.",
         )
 
     # ------------------------------------------ ViewModel signal handlers

@@ -114,7 +114,9 @@ class MainViewModel(QObject):
             return
         # Prefer live editor text over stale document state — avoids overwriting
         # user edits when a cleaning checkbox is toggled after in-editor typing.
-        content = current_text if current_text is not None else self._current_document.content
+        content = (
+            current_text if current_text is not None else self._current_document.content
+        )
         cleaned = self._text_service.apply_options(content, options)
         self._current_document = TextDocument(
             filepath=self._current_document.filepath,
@@ -143,7 +145,9 @@ class MainViewModel(QObject):
         if self._current_document is None or not find_term:
             return
         # Prefer live editor text over stale document state — mirrors apply_cleaning.
-        content = current_text if current_text is not None else self._current_document.content
+        content = (
+            current_text if current_text is not None else self._current_document.content
+        )
         count = content.count(find_term)
         new_content = content.replace(find_term, replace_term)
         self._current_document = TextDocument(
@@ -155,4 +159,3 @@ class MainViewModel(QObject):
         self.document_loaded.emit(new_content)
         noun = "occurrence" if count == 1 else "occurrences"
         self.status_changed.emit(f"Replaced {count} {noun}")
-
