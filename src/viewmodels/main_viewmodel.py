@@ -1,103 +1,152 @@
-"""Example ViewModel demonstrating MVVM pattern.
+"""MainViewModel — presentation logic for the TextTools main window.
 
-ViewModels contain presentation logic and mediate between Views and Models.
-They inherit from QObject to use Qt's signal/slot mechanism.
+Mediates between MainWindow (View) and the service layer.
+No direct widget manipulation — communicates exclusively via signals.
+
+ServiceProtocols are defined here (per CLAUDE.md: protocol is local to consumer).
+If signal or slot signatures change, update MainWindow._connect_signals() in lockstep.
 """
-import logging
-from PySide6.QtCore import QObject, Signal, Slot
-from typing import List, Protocol
-from src.models.example_model import ExampleModel
 
+import logging
+from typing import Protocol
+
+from PySide6.QtCore import QObject, Signal, Slot
+
+from src.models.cleaning_options import CleaningOptions
+from src.models.text_document import TextDocument
 
 logger = logging.getLogger(__name__)
 
 
-class ServiceProtocol(Protocol):
-    """Protocol defining the service interface.
+class FileServiceProtocol(Protocol):
+    """Interface required of any file service injected into MainViewModel."""
 
-    This allows for dependency injection and easy testing with mocks.
-    """
+    def open_file(self, filepath: str) -> TextDocument: ...
 
-    def fetch_data(self) -> List[ExampleModel]:
-        """Fetch data from service."""
-        ...
+    def save_file(self, document: TextDocument) -> None: ...
 
-    def save_data(self, model: ExampleModel) -> bool:
-        """Save data to service."""
-        ...
+
+class TextServiceProtocol(Protocol):
+    """Interface required of any text processing service injected into MainViewModel."""
+
+    def apply_options(self, text: str, options: CleaningOptions) -> str: ...
 
 
 class MainViewModel(QObject):
-    """Main application ViewModel.
+    """Presentation logic for the main window.
 
     Signals:
-        data_loaded: Emitted when data is successfully loaded.
-        error_occurred: Emitted when an error occurs.
-        status_changed: Emitted when status message changes.
+        document_loaded: Emitted with decoded file content ready for the editor.
+        encoding_detected: Emitted with encoding name on file open.
+        file_saved: Emitted with filepath after a successful save.
+        error_occurred: Emitted with error message on any failure.
+        status_changed: Emitted with status bar text.
+        find_requested: Emitted with search term; view performs the find.
+        replace_requested: Emitted with (find, replace); view performs the replace.
     """
 
-    # Define signals for state changes
-    data_loaded = Signal(list)  # Emits list of display strings
-    error_occurred = Signal(str)  # Emits error message
-    status_changed = Signal(str)  # Emits status message
+    document_loaded = Signal(str)
+    encoding_detected = Signal(str)
+    file_saved = Signal(str)
+    error_occurred = Signal(str)
+    status_changed = Signal(str)
+    find_requested = Signal(str)
+    replace_requested = Signal(str, str)
 
-    def __init__(self, service: ServiceProtocol):
-        """Initialize the ViewModel.
-
-        Args:
-            service: Service instance for data operations.
-        """
+    def __init__(
+        self,
+        file_service: FileServiceProtocol,
+        text_service: TextServiceProtocol,
+    ) -> None:
         super().__init__()
-        self._service = service
-        self._models: List[ExampleModel] = []
+        self._file_service = file_service
+        self._text_service = text_service
+        self._current_document: TextDocument | None = None
 
-    @Slot()
-    def load_data(self) -> None:
-        """Load data from service.
-
-        Fetches data and emits appropriate signals based on result.
-        """
-        logger.info("Loading data")
-        self.status_changed.emit("Loading data...")
-
+    @Slot(str)
+    def load_file(self, filepath: str) -> None:
+        """Load a file from disk and emit its content for the editor."""
+        logger.info("Loading file: %s", filepath)
+        self.status_changed.emit(f"Loading {filepath}...")
         try:
-            self._models = self._service.fetch_data()
+            doc = self._file_service.open_file(filepath)
+            self._current_document = doc
+            self.document_loaded.emit(doc.content)
+            self.encoding_detected.emit(doc.encoding)
+            self.status_changed.emit(f"Opened: {filepath}")
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            msg = f"Cannot open file: {e}"
+            logger.error(msg)
+            self.error_occurred.emit(msg)
+            self.status_changed.emit("Error opening file")
 
-            # Convert models to display strings
-            display_items = [model.to_display_string() for model in self._models]
+    @Slot(str, str)
+    def save_file(self, filepath: str, content: str) -> None:
+        """Save editor content to a filepath."""
+        logger.info("Saving to: %s", filepath)
+        encoding = (
+            self._current_document.encoding if self._current_document else "utf-8"
+        )
+        doc = TextDocument(filepath=filepath, content=content, encoding=encoding)
+        try:
+            self._file_service.save_file(doc)
+            self._current_document = doc
+            self.file_saved.emit(filepath)
+            self.status_changed.emit(f"Saved: {filepath}")
+        except (ValueError, PermissionError, OSError) as e:
+            msg = f"Cannot save file: {e}"
+            logger.error(msg)
+            self.error_occurred.emit(msg)
+            self.status_changed.emit("Error saving file")
 
-            self.data_loaded.emit(display_items)
-            self.status_changed.emit(f"Loaded {len(self._models)} items")
-            logger.info(f"Successfully loaded {len(self._models)} items")
+    @Slot(object)
+    def apply_cleaning(self, options: CleaningOptions) -> None:
+        """Apply text cleaning to current document content.
 
-        except Exception as e:
-            error_msg = f"Failed to load data: {str(e)}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            self.status_changed.emit("Error loading data")
-
-    @Slot(int)
-    def get_item_details(self, index: int) -> None:
-        """Get detailed information about an item.
-
-        Args:
-            index: Index of the item in the list.
+        No-op when no document is loaded.
         """
-        if 0 <= index < len(self._models):
-            model = self._models[index]
-            details = (
-                f"ID: {model.id}\n"
-                f"Name: {model.name}\n"
-                f"Value: {model.value}\n"
-                f"Doubled: {model.calculate_doubled_value()}\n"
-                f"Description: {model.description or 'N/A'}"
-            )
-            self.status_changed.emit(details)
+        if self._current_document is None:
+            self.status_changed.emit("No document loaded")
+            return
+        cleaned = self._text_service.apply_options(
+            self._current_document.content, options
+        )
+        self._current_document = TextDocument(
+            filepath=self._current_document.filepath,
+            content=cleaned,
+            encoding=self._current_document.encoding,
+            modified=True,
+        )
+        self.document_loaded.emit(cleaned)
+        self.status_changed.emit("Text cleaned")
 
-    @Slot()
-    def clear_data(self) -> None:
-        """Clear all loaded data."""
-        logger.info("Clearing data")
-        self._models.clear()
-        self.data_loaded.emit([])
-        self.status_changed.emit("Data cleared")
+    @Slot(str, str)
+    def replace_all(self, find_term: str, replace_term: str) -> None:
+        """Replace all occurrences of find_term in current document content.
+
+        No-op when no document is loaded or find_term is empty.
+        """
+        if self._current_document is None or not find_term:
+            return
+        content = self._current_document.content
+        count = content.count(find_term)
+        new_content = content.replace(find_term, replace_term)
+        self._current_document = TextDocument(
+            filepath=self._current_document.filepath,
+            content=new_content,
+            encoding=self._current_document.encoding,
+            modified=True,
+        )
+        self.document_loaded.emit(new_content)
+        noun = "occurrence" if count == 1 else "occurrences"
+        self.status_changed.emit(f"Replaced {count} {noun}")
+
+    @Slot(str)
+    def request_find(self, term: str) -> None:
+        """Signal the view to find the next occurrence of term."""
+        self.find_requested.emit(term)
+
+    @Slot(str, str)
+    def request_replace(self, find_term: str, replace_term: str) -> None:
+        """Signal the view to replace the current selection."""
+        self.replace_requested.emit(find_term, replace_term)
