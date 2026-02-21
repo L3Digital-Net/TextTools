@@ -12,10 +12,10 @@ Signal flow:
 import os
 
 from PySide6.QtCore import QDir, QFile, QModelIndex
-from PySide6.QtGui import QFileSystemModel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QCheckBox,
+    QFileSystemModel,
     QLabel,
     QLineEdit,
     QMainWindow,
