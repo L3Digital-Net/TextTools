@@ -99,7 +99,6 @@ class MainViewModel(QObject):
             self.error_occurred.emit(msg)
             self.status_changed.emit("Error saving file")
 
-    @Slot(object)
     def apply_cleaning(
         self, options: CleaningOptions, current_text: str | None = None
     ) -> None:
@@ -130,7 +129,6 @@ class MainViewModel(QObject):
         self.document_loaded.emit(cleaned)
         self.status_changed.emit("Text cleaned")
 
-    @Slot(str, str)
     def replace_all(
         self, find_term: str, replace_term: str, current_text: str | None = None
     ) -> None:
