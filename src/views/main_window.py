@@ -14,7 +14,7 @@ window. Embedding one QMainWindow inside another breaks sizing and menubar.
 """
 
 import os
-from typing import cast
+from typing import TypeVar, cast
 
 from PySide6.QtCore import QDir, QFile, QModelIndex
 from PySide6.QtUiTools import QUiLoader
@@ -32,6 +32,21 @@ from PySide6.QtWidgets import (
 
 from src.models.cleaning_options import CleaningOptions
 from src.viewmodels.main_viewmodel import MainViewModel
+
+_W = TypeVar("_W")
+
+
+def _require(widget: "_W | None", name: str) -> "_W":
+    """Return widget or raise RuntimeError if findChild returned None.
+
+    Catches objectName mismatches between main_window.py and the .ui file
+    at startup rather than letting an AttributeError surface later.
+    """
+    if widget is None:
+        raise RuntimeError(
+            f"Required widget '{name}' not found in UI — check objectName in main_window.ui"
+        )
+    return widget
 
 
 class MainWindow:
@@ -76,35 +91,51 @@ class MainWindow:
         self.ui: QMainWindow = cast(QMainWindow, loaded)
 
         # Widget references — objectNames from DESIGN.md Appendix A
-        self._plain_text_edit: QPlainTextEdit = self.ui.findChild(
-            QPlainTextEdit, "plainTextEdit"
+        self._plain_text_edit = _require(
+            self.ui.findChild(QPlainTextEdit, "plainTextEdit"), "plainTextEdit"
         )
-        self._file_name_edit: QLineEdit = self.ui.findChild(QLineEdit, "fileNameEdit")
-        self._save_button: QPushButton = self.ui.findChild(QPushButton, "saveButton")
-        self._file_tree_view: QTreeView = self.ui.findChild(QTreeView, "fileTreeView")
-        self._encoding_label: QLabel = self.ui.findChild(
-            QLabel, "getEncodingFormatLabel"
+        self._file_name_edit = _require(
+            self.ui.findChild(QLineEdit, "fileNameEdit"), "fileNameEdit"
         )
-        self._trim_cb: QCheckBox = self.ui.findChild(
-            QCheckBox, "trimWhiteSpaceCheckBox"
+        self._save_button = _require(
+            self.ui.findChild(QPushButton, "saveButton"), "saveButton"
         )
-        self._clean_cb: QCheckBox = self.ui.findChild(
-            QCheckBox, "cleanWhiteSpaceCheckBox"
+        self._file_tree_view = _require(
+            self.ui.findChild(QTreeView, "fileTreeView"), "fileTreeView"
         )
-        self._remove_tabs_cb: QCheckBox = self.ui.findChild(
-            QCheckBox, "removeTabsCheckBox"
+        self._encoding_label = _require(
+            self.ui.findChild(QLabel, "getEncodingFormatLabel"),
+            "getEncodingFormatLabel",
         )
-        self._find_edit: QLineEdit = self.ui.findChild(QLineEdit, "findLineEdit")
-        self._find_button: QPushButton = self.ui.findChild(QPushButton, "findButton")
-        self._replace_edit: QLineEdit = self.ui.findChild(QLineEdit, "replaceLineEdit")
-        self._replace_button: QPushButton = self.ui.findChild(
-            QPushButton, "replaceButton"
+        self._trim_cb = _require(
+            self.ui.findChild(QCheckBox, "trimWhiteSpaceCheckBox"),
+            "trimWhiteSpaceCheckBox",
         )
-        self._replace_all_button: QPushButton = self.ui.findChild(
-            QPushButton, "replaceAllButton"
+        self._clean_cb = _require(
+            self.ui.findChild(QCheckBox, "cleanWhiteSpaceCheckBox"),
+            "cleanWhiteSpaceCheckBox",
         )
-        self._convert_button: QPushButton = self.ui.findChild(
-            QPushButton, "convertEncodingButton"
+        self._remove_tabs_cb = _require(
+            self.ui.findChild(QCheckBox, "removeTabsCheckBox"), "removeTabsCheckBox"
+        )
+        self._find_edit = _require(
+            self.ui.findChild(QLineEdit, "findLineEdit"), "findLineEdit"
+        )
+        self._find_button = _require(
+            self.ui.findChild(QPushButton, "findButton"), "findButton"
+        )
+        self._replace_edit = _require(
+            self.ui.findChild(QLineEdit, "replaceLineEdit"), "replaceLineEdit"
+        )
+        self._replace_button = _require(
+            self.ui.findChild(QPushButton, "replaceButton"), "replaceButton"
+        )
+        self._replace_all_button = _require(
+            self.ui.findChild(QPushButton, "replaceAllButton"), "replaceAllButton"
+        )
+        self._convert_button = _require(
+            self.ui.findChild(QPushButton, "convertEncodingButton"),
+            "convertEncodingButton",
         )
 
     def _setup_file_tree(self) -> None:
@@ -162,7 +193,9 @@ class MainWindow:
         filepath = self._file_name_edit.text().strip()
         if not filepath:
             QMessageBox.warning(
-                self.ui, "Save", "Enter a file path in the filename field before saving."
+                self.ui,
+                "Save",
+                "Enter a file path in the filename field before saving.",
             )
             return
         self._viewmodel.save_file(filepath, self._plain_text_edit.toPlainText())

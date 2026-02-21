@@ -7,12 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] - 2026-02-21
+
+### Added
+- `TextDocument` dataclass — core domain model for loaded files (`filepath`, `content`, `encoding`, `modified`)
+- `CleaningOptions` dataclass — configuration for text cleaning passes
+- `TextProcessingService` — stateless text cleaning: `trim_whitespace`, `clean_whitespace`, `remove_tabs`, `apply_options`
+- `FileService` — atomic file save (`tempfile.mkstemp` + `os.replace`), encoding detection via `chardet` with 0.7 confidence threshold
+- `MainViewModel` — full signal/slot implementation: `document_loaded`, `encoding_detected`, `file_saved`, `error_occurred`, `status_changed`; slots for `load_file`, `save_file`, `apply_cleaning`, `replace_all`
+- `MainWindow` — wires QFileSystemModel file tree, all checkbox/button signals, find/replace with wrap-around cursor, ViewModel signal handlers
+- `chardet>=5.0.0` runtime dependency for encoding detection
+- `mypy`, `black`, `isort` dev dependencies in `requirements.txt`
+- 60 unit and integration tests (100% coverage on models and TextProcessingService; 98% on ViewModel)
+- `AGENTS.md` rewritten with TextTools-specific architecture reference and widget objectName table
+
 ### Changed
 - Renamed project from Template-Desktop-Application to TextTools
-- Updated `APP_NAME` constant and `QApplication` name to "TextTools"
-- Removed ContextStream MCP references from `AGENTS.md`
-- Updated `README.md`, `CONTRIBUTING.md`, and `CLAUDE.md` to reflect TextTools identity and actual codebase state
-- Added `.mcp.json*` and `.codex/` to `.gitignore`
+- `main.py` composition root now wires `FileService` + `TextProcessingService` → `MainViewModel` → `MainWindow`; logging to stdout only
+- `MainWindow` changed from `QMainWindow` subclass to a plain Python controller — `self.ui` is the loaded `.ui` QMainWindow, preventing nested-QMainWindow sizing bugs
+- All template/scaffold files removed (`ExampleModel`, `ExampleService`, `example_model.py` tests)
+- CI workflow updated: `develop` → `testing` branch, action versions pinned to v4/v5, `pip` → `uv`
+- `.ui` window title changed from `"MainWindow"` to `"TextTools"`
+- `pyproject.toml` mypy config: added `explicit_package_bases = true`
+
+### Fixed
+- `QFileSystemModel` import moved from `PySide6.QtGui` to `PySide6.QtWidgets` (correct for PySide6 6.10.x)
+- Black/isort formatting applied to all source files
 
 ---
 

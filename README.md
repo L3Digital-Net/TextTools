@@ -2,7 +2,7 @@
 
 A PySide6 desktop application for text processing on Linux. Provides encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management through a split-panel interface.
 
-**Status**: Core MVVM framework is in place. Feature logic is under active development — see `DESIGN.md` for the full specification.
+**Status**: v0.2.0 — core features implemented and tested. Encoding conversion is stubbed; find/replace, text cleaning, and file I/O are fully functional. See `DESIGN.md` for the full specification.
 
 ## Stack
 
@@ -42,7 +42,7 @@ Coverage runs automatically with every `pytest` invocation (configured in `pypro
 pytest tests/
 
 # Single test file
-pytest tests/unit/test_example_model.py
+pytest tests/unit/test_text_document.py
 
 # Filtered by name
 pytest -k "test_viewmodel" tests/
@@ -90,10 +90,14 @@ src/
 
 ## Dependencies
 
+**Runtime**:
 ```
 PySide6>=6.8.0
-pytest>=8.3.0
-pytest-qt>=4.4.0
-pytest-mock>=3.14.0
-pytest-cov>=5.0.0
+chardet>=5.0.0   # optional: encoding detection (falls back to utf-8 without it)
+```
+
+**Development / testing**:
+```
+pytest>=8.3.0, pytest-qt>=4.4.0, pytest-mock>=3.14.0, pytest-cov>=5.0.0
+mypy>=1.0.0, black>=24.0.0, isort>=5.13.0
 ```
