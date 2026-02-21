@@ -4,11 +4,11 @@ No Qt imports. No file I/O. Each method is a pure function wrapped in a class
 for dependency injection. Called by MainViewModel.apply_cleaning().
 If the CleaningOptions fields change, update apply_options() below.
 """
-import re
+
 import logging
+import re
 
 from src.models.cleaning_options import CleaningOptions
-
 
 logger = logging.getLogger(__name__)
 

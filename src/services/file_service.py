@@ -9,12 +9,12 @@ to swap atomically. This prevents partial-write corruption if the process dies m
 Encoding detection: uses chardet if available and confidence >= 0.7. Falls back
 to utf-8 otherwise. Decode errors use 'replace' to avoid crashing on binary content.
 """
+
 import logging
 import os
 import tempfile
 
 from src.models.text_document import TextDocument
-
 
 logger = logging.getLogger(__name__)
 

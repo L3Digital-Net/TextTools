@@ -4,6 +4,7 @@ This is the primary data transfer object between FileService and MainViewModel.
 If fields change, update FileService.open_file() and MainViewModel._current_document
 references accordingly.
 """
+
 from dataclasses import dataclass
 
 

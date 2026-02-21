@@ -3,6 +3,7 @@
 Passed from View → ViewModel → TextProcessingService. If fields change,
 update MainWindow._collect_cleaning_options() and TextProcessingService.apply_options().
 """
+
 from dataclasses import dataclass
 
 
