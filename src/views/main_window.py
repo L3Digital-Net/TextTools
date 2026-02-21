@@ -7,9 +7,14 @@ changes objectNames, update findChild() calls below to match.
 Signal flow:
   User action → View slot → ViewModel slot (via signal or direct call)
   ViewModel signal → View slot → widget update
+
+Architecture note: MainWindow is a plain Python controller, not a QMainWindow
+subclass. The .ui root IS a QMainWindow, so self.ui is the actual top-level
+window. Embedding one QMainWindow inside another breaks sizing and menubar.
 """
 
 import os
+from typing import cast
 
 from PySide6.QtCore import QDir, QFile, QModelIndex
 from PySide6.QtUiTools import QUiLoader
@@ -29,8 +34,8 @@ from src.models.cleaning_options import CleaningOptions
 from src.viewmodels.main_viewmodel import MainViewModel
 
 
-class MainWindow(QMainWindow):
-    """Main application window.
+class MainWindow:
+    """Main application window controller.
 
     Responsibilities:
     - Load main_window.ui and locate all named widgets
@@ -39,14 +44,20 @@ class MainWindow(QMainWindow):
     - Implement find/replace directly on QPlainTextEdit (Qt built-in)
 
     Not responsible for: file I/O, text processing, encoding detection.
+
+    self.ui is the actual QMainWindow top-level window (the .ui root widget).
+    This class is a plain Python controller — not a QMainWindow subclass.
     """
 
     def __init__(self, viewmodel: MainViewModel) -> None:
-        super().__init__()
         self._viewmodel = viewmodel
         self._load_ui()
         self._setup_file_tree()
         self._connect_signals()
+
+    def show(self) -> None:
+        """Show the main application window."""
+        self.ui.show()
 
     # ------------------------------------------------------------------ setup
 
@@ -57,9 +68,12 @@ class MainWindow(QMainWindow):
         if not ui_file.open(QFile.OpenModeFlag.ReadOnly):
             raise RuntimeError(f"Cannot open UI file: {ui_path}")
         loader = QUiLoader()
-        self.ui = loader.load(ui_file, self)
+        loaded = loader.load(ui_file)
         ui_file.close()
-        self.setCentralWidget(self.ui)
+        if loaded is None:
+            raise RuntimeError(f"QUiLoader failed to load UI file: {ui_path}")
+        # The .ui root is QMainWindow — self.ui IS the top-level window.
+        self.ui: QMainWindow = cast(QMainWindow, loaded)
 
         # Widget references — objectNames from DESIGN.md Appendix A
         self._plain_text_edit: QPlainTextEdit = self.ui.findChild(
@@ -95,7 +109,7 @@ class MainWindow(QMainWindow):
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
-        self._fs_model = QFileSystemModel(self)
+        self._fs_model = QFileSystemModel(self.ui)
         self._fs_model.setRootPath(QDir.homePath())
         self._file_tree_view.setModel(self._fs_model)
         self._file_tree_view.setRootIndex(self._fs_model.index(QDir.homePath()))
@@ -124,7 +138,7 @@ class MainWindow(QMainWindow):
 
         # Encoding convert is stubbed for v1
         self._convert_button.clicked.connect(
-            lambda: self.statusBar().showMessage("Encoding conversion — coming soon")
+            lambda: self.ui.statusBar().showMessage("Encoding conversion — coming soon")
         )
 
         # ViewModel → View
@@ -148,7 +162,7 @@ class MainWindow(QMainWindow):
         filepath = self._file_name_edit.text().strip()
         if not filepath:
             QMessageBox.warning(
-                self, "Save", "Enter a file path in the filename field before saving."
+                self.ui, "Save", "Enter a file path in the filename field before saving."
             )
             return
         self._viewmodel.save_file(filepath, self._plain_text_edit.toPlainText())
@@ -199,10 +213,10 @@ class MainWindow(QMainWindow):
         self._encoding_label.setText(encoding)
 
     def _on_file_saved(self, filepath: str) -> None:
-        self.statusBar().showMessage(f"Saved: {filepath}")
+        self.ui.statusBar().showMessage(f"Saved: {filepath}")
 
     def _on_error(self, message: str) -> None:
-        QMessageBox.critical(self, "Error", message, QMessageBox.StandardButton.Ok)
+        QMessageBox.critical(self.ui, "Error", message, QMessageBox.StandardButton.Ok)
 
     def _on_status_changed(self, message: str) -> None:
-        self.statusBar().showMessage(message)
+        self.ui.statusBar().showMessage(message)
