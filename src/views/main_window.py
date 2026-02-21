@@ -155,6 +155,9 @@ class MainWindow:
         self._action_about = _require(
             self.ui.findChild(QAction, "actionAbout"), "actionAbout"
         )
+        self._action_preferences = _require(
+            self.ui.findChild(QAction, "actionPreferences"), "actionPreferences"
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
@@ -198,6 +201,9 @@ class MainWindow:
             lambda: self.ui.statusBar().showMessage("Save As — coming soon")
         )
         self._action_about.triggered.connect(self._on_action_about)
+        self._action_preferences.triggered.connect(
+            lambda: self.ui.statusBar().showMessage("Preferences — coming soon")
+        )
 
         # ViewModel → View
         self._viewmodel.document_loaded.connect(self._on_document_loaded)
