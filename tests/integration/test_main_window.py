@@ -35,16 +35,19 @@ class TestWindowTitle:
         assert window.ui.windowTitle() == "TextTools"
 
     def test_title_shows_filename_after_load(self, window, qtbot):
+        window._file_name_edit.setText("/tmp/test.txt")
         window._viewmodel.load_file("/tmp/test.txt")
         qtbot.wait(10)
         assert "test.txt" in window.ui.windowTitle()
 
     def test_title_has_no_star_immediately_after_load(self, window, qtbot):
+        window._file_name_edit.setText("/tmp/test.txt")
         window._viewmodel.load_file("/tmp/test.txt")
         qtbot.wait(10)
         assert "*" not in window.ui.windowTitle()
 
     def test_title_shows_star_after_user_edit(self, window, qtbot):
+        window._file_name_edit.setText("/tmp/test.txt")
         window._viewmodel.load_file("/tmp/test.txt")
         qtbot.wait(10)
         # Simulate a user edit by directly modifying the document
@@ -54,6 +57,7 @@ class TestWindowTitle:
         assert "*" in window.ui.windowTitle()
 
     def test_title_loses_star_after_file_saved(self, window, qtbot):
+        window._file_name_edit.setText("/tmp/test.txt")
         window._viewmodel.load_file("/tmp/test.txt")
         qtbot.wait(10)
         cursor = window._plain_text_edit.textCursor()

@@ -331,11 +331,10 @@ class MainWindow:
     def _on_document_loaded(self, content: str) -> None:
         self._set_editor_text(content)
         self._plain_text_edit.document().setModified(False)
-        # Prefer the filepath from the ViewModel's current document (the authoritative
-        # source after load_file). Fall back to the fileNameEdit text for cases where
-        # the document is loaded without going through load_file (e.g., legacy callers).
-        doc = self._viewmodel._current_document
-        self._filepath = doc.filepath if doc is not None else self._file_name_edit.text()
+        # fileNameEdit is always populated before load_file is called (see
+        # _on_tree_item_clicked and _on_action_open). Reading the widget here
+        # keeps the View in its own layer — never access ViewModel private state.
+        self._filepath = self._file_name_edit.text()
         self._update_title()
 
     def _on_encoding_detected(self, encoding: str) -> None:
