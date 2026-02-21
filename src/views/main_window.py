@@ -201,13 +201,16 @@ class MainWindow:
         self._viewmodel.save_file(filepath, self._plain_text_edit.toPlainText())
 
     def _on_clean_requested(self) -> None:
-        """Build CleaningOptions from checkbox states; delegate to ViewModel."""
+        """Build CleaningOptions from checkbox states; delegate to ViewModel.
+
+        Passes live editor text so user edits made since file-load are not lost.
+        """
         options = CleaningOptions(
             trim_whitespace=self._trim_cb.isChecked(),
             clean_whitespace=self._clean_cb.isChecked(),
             remove_tabs=self._remove_tabs_cb.isChecked(),
         )
-        self._viewmodel.apply_cleaning(options)
+        self._viewmodel.apply_cleaning(options, self._plain_text_edit.toPlainText())
 
     def _on_find_clicked(self) -> None:
         """Find next occurrence of the search term in the editor."""
@@ -234,8 +237,15 @@ class MainWindow:
         self._on_find_clicked()
 
     def _on_replace_all_clicked(self) -> None:
-        """Delegate replace-all to ViewModel (operates on stored content)."""
-        self._viewmodel.replace_all(self._find_edit.text(), self._replace_edit.text())
+        """Delegate replace-all to ViewModel, passing live editor text.
+
+        Passes live editor text so user edits made since file-load are not lost.
+        """
+        self._viewmodel.replace_all(
+            self._find_edit.text(),
+            self._replace_edit.text(),
+            self._plain_text_edit.toPlainText(),
+        )
 
     # ------------------------------------------ ViewModel signal handlers
 

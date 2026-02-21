@@ -100,17 +100,27 @@ class MainViewModel(QObject):
             self.status_changed.emit("Error saving file")
 
     @Slot(object)
-    def apply_cleaning(self, options: CleaningOptions) -> None:
-        """Apply text cleaning to current document content.
+    def apply_cleaning(
+        self, options: CleaningOptions, current_text: str | None = None
+    ) -> None:
+        """Apply text cleaning to the given text or current document content.
+
+        Args:
+            options: Cleaning flags to apply.
+            current_text: Live editor text from the View. When provided, takes
+                precedence over _current_document.content so user edits typed
+                after file-load are not discarded. When None, falls back to the
+                last-loaded document content (backward-compatible default).
 
         No-op when no document is loaded.
         """
         if self._current_document is None:
             self.status_changed.emit("No document loaded")
             return
-        cleaned = self._text_service.apply_options(
-            self._current_document.content, options
-        )
+        # Prefer live editor text over stale document state — avoids overwriting
+        # user edits when a cleaning checkbox is toggled after in-editor typing.
+        content = current_text if current_text is not None else self._current_document.content
+        cleaned = self._text_service.apply_options(content, options)
         self._current_document = TextDocument(
             filepath=self._current_document.filepath,
             content=cleaned,
@@ -121,14 +131,25 @@ class MainViewModel(QObject):
         self.status_changed.emit("Text cleaned")
 
     @Slot(str, str)
-    def replace_all(self, find_term: str, replace_term: str) -> None:
-        """Replace all occurrences of find_term in current document content.
+    def replace_all(
+        self, find_term: str, replace_term: str, current_text: str | None = None
+    ) -> None:
+        """Replace all occurrences of find_term in the given text or current document.
+
+        Args:
+            find_term: String to search for.
+            replace_term: String to substitute.
+            current_text: Live editor text from the View. When provided, takes
+                precedence over _current_document.content so user edits typed
+                after file-load are not discarded. When None, falls back to the
+                last-loaded document content (backward-compatible default).
 
         No-op when no document is loaded or find_term is empty.
         """
         if self._current_document is None or not find_term:
             return
-        content = self._current_document.content
+        # Prefer live editor text over stale document state — mirrors apply_cleaning.
+        content = current_text if current_text is not None else self._current_document.content
         count = content.count(find_term)
         new_content = content.replace(find_term, replace_term)
         self._current_document = TextDocument(

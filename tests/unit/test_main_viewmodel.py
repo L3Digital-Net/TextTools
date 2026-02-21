@@ -100,6 +100,14 @@ class TestApplyCleaning:
         vm.apply_cleaning(CleaningOptions(trim_whitespace=True))
         mock_text_svc.apply_options.assert_not_called()
 
+    def test_uses_current_text_when_provided(self, vm, mock_file_svc, mock_text_svc):
+        """apply_cleaning should clean the passed text, not _current_document.content."""
+        vm.load_file("/tmp/test.txt")  # loads "hello world"
+        opts = CleaningOptions(trim_whitespace=True)
+        vm.apply_cleaning(opts, current_text="  edited text  ")
+        # text service should have received the editor text, not "hello world"
+        mock_text_svc.apply_options.assert_called_once_with("  edited text  ", opts)
+
 
 class TestReplaceAll:
     def test_replaces_all_occurrences_in_content(self, vm, qtbot):
@@ -133,3 +141,10 @@ class TestReplaceAll:
         vm.replace_all("", "replacement")
         qtbot.wait(10)
         assert emitted == []
+
+    def test_replace_all_uses_current_text_when_provided(self, vm, qtbot):
+        """replace_all should operate on the passed text, not _current_document.content."""
+        vm.load_file("/tmp/test.txt")  # loads "hello world"
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.replace_all("hello", "goodbye", current_text="hello hello")
+        assert blocker.args[0] == "goodbye goodbye"
