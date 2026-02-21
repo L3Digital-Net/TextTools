@@ -41,8 +41,6 @@ class MainViewModel(QObject):
         file_saved: Emitted with filepath after a successful save.
         error_occurred: Emitted with error message on any failure.
         status_changed: Emitted with status bar text.
-        find_requested: Emitted with search term; view performs the find.
-        replace_requested: Emitted with (find, replace); view performs the replace.
     """
 
     document_loaded = Signal(str)
@@ -50,8 +48,6 @@ class MainViewModel(QObject):
     file_saved = Signal(str)
     error_occurred = Signal(str)
     status_changed = Signal(str)
-    find_requested = Signal(str)
-    replace_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -160,12 +156,3 @@ class MainViewModel(QObject):
         noun = "occurrence" if count == 1 else "occurrences"
         self.status_changed.emit(f"Replaced {count} {noun}")
 
-    @Slot(str)
-    def request_find(self, term: str) -> None:
-        """Signal the view to find the next occurrence of term."""
-        self.find_requested.emit(term)
-
-    @Slot(str, str)
-    def request_replace(self, find_term: str, replace_term: str) -> None:
-        """Signal the view to replace the current selection."""
-        self.replace_requested.emit(find_term, replace_term)
