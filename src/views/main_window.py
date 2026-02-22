@@ -428,7 +428,9 @@ class MainWindow:
 
         Silent no-op when no settings exist yet (first launch or cleared).
         """
-        settings = QSettings("TextTools", "TextTools")
+        # QSettings() (zero-arg) resolves org/app from QCoreApplication identity
+        # set in main() — avoids silent divergence if APP_NAME is ever renamed.
+        settings = QSettings()
         if geometry := settings.value("window/geometry"):
             self.ui.restoreGeometry(geometry)
         if main_state := settings.value("splitter/main"):
@@ -441,7 +443,7 @@ class MainWindow:
 
         Connected to QApplication.aboutToQuit in __init__.
         """
-        settings = QSettings("TextTools", "TextTools")
+        settings = QSettings()
         settings.setValue("window/geometry", self.ui.saveGeometry())
         settings.setValue("splitter/main", self._main_splitter.saveState())
         settings.setValue("splitter/left", self._left_splitter.saveState())
