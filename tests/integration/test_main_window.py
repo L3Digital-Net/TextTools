@@ -335,3 +335,211 @@ class TestErrorHandler:
         qtbot.wait(10)
         assert len(calls) == 1
         assert "something went wrong" in calls[0][2]
+
+
+class TestDefaultTab:
+    def test_opens_on_clean_tab(self, window):
+        """Tab widget must default to index 0 (Clean tab), not 2 (Find/Replace)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab is not None
+        assert tab.currentIndex() == 0
+
+
+class TestKeyboardShortcuts:
+    """Verify QShortcut wiring by activating each shortcut's signal directly.
+
+    qtbot.keyClick sends QKeyEvent, which does not trigger QShortcut (those
+    listen for QShortcutEvent dispatched by Qt's shortcut system). Emitting
+    activated directly tests the actual signal-to-slot connection without
+    depending on OS-level key event routing.
+
+    hasFocus() is unreliable in headless tests because it requires the window
+    to hold true OS-level focus. Instead: for Ctrl+F and Ctrl+H, the observable
+    side effect is the tab switching to Find/Replace — that is what we assert.
+    For F3, the cursor position advancing to the second match is the assertion.
+    """
+
+    def _shortcut_for(self, window, key_string: str):
+        """Return the QShortcut whose key matches key_string, or raise."""
+        from PySide6.QtGui import QKeySequence, QShortcut
+        target = QKeySequence(key_string)
+        shortcuts = window.ui.findChildren(QShortcut)
+        for sc in shortcuts:
+            if sc.key() == target:
+                return sc
+        raise AssertionError(f"No QShortcut with key '{key_string}' found on window.ui")
+
+    def test_ctrl_f_switches_to_find_replace_tab(self, window, qtbot):
+        """Ctrl+F switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
+        sc = self._shortcut_for(window, "Ctrl+F")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert tab.currentIndex() == window._find_replace_tab_index
+
+    def test_ctrl_h_switches_to_find_replace_tab(self, window, qtbot):
+        """Ctrl+H switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
+        sc = self._shortcut_for(window, "Ctrl+H")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert tab.currentIndex() == window._find_replace_tab_index
+
+    def test_f3_triggers_find_next(self, window, qtbot):
+        """F3 finds the next occurrence of the current search term."""
+        window._plain_text_edit.setPlainText("hello world hello")
+        window._find_edit.setText("hello")
+        # First find via direct call establishes an initial selection
+        window._on_find_clicked()
+        assert window._plain_text_edit.textCursor().selectedText() == "hello"
+        pos_after_first = window._plain_text_edit.textCursor().position()
+        # F3 shortcut should advance to next occurrence
+        sc = self._shortcut_for(window, "F3")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert window._plain_text_edit.textCursor().selectedText() == "hello"
+        pos_after_second = window._plain_text_edit.textCursor().position()
+        assert pos_after_second > pos_after_first
+
+
+class TestConvertEncodingHandler:
+    def test_convert_button_calls_viewmodel(self, window, qtbot):
+        """Clicking the Convert button must call viewmodel.convert_to_utf8."""
+        from unittest.mock import patch
+        window._plain_text_edit.setPlainText("hello")
+        with patch.object(window._viewmodel, "convert_to_utf8") as mock_convert:
+            window._convert_button.click()
+        mock_convert.assert_called_once_with("hello")
+
+
+class TestStatusBarCursorPosition:
+    def test_cursor_label_exists(self, window):
+        """A permanent cursor label must be visible in the status bar."""
+        assert hasattr(window, "_cursor_label")
+        assert window._cursor_label.text() != ""
+
+    def test_cursor_label_shows_line_and_col(self, window, qtbot):
+        """Moving the cursor must update the cursor label."""
+        window._plain_text_edit.setPlainText("first line\nsecond line")
+        # Move cursor to start of second line (position 11)
+        cursor = window._plain_text_edit.textCursor()
+        cursor.setPosition(11)
+        window._plain_text_edit.setTextCursor(cursor)
+        qtbot.wait(10)
+        label_text = window._cursor_label.text()
+        assert "Ln 2" in label_text
+        assert "Col 1" in label_text
+
+    def test_cursor_label_shows_char_count(self, window, qtbot):
+        """The cursor label must include the document character count."""
+        window._plain_text_edit.setPlainText("hello")
+        qtbot.wait(10)
+        assert "5 chars" in window._cursor_label.text()
+
+    def test_char_count_updates_on_delete_without_cursor_move(self, window, qtbot):
+        """Char count must update even when content changes without cursor moving."""
+        window._plain_text_edit.setPlainText("hello world")
+        cursor = window._plain_text_edit.textCursor()
+        cursor.setPosition(5)
+        window._plain_text_edit.setTextCursor(cursor)
+        # deleteChar removes the character after the cursor — cursor position unchanged
+        for _ in range(3):
+            cursor = window._plain_text_edit.textCursor()
+            cursor.deleteChar()
+        qtbot.wait(10)
+        assert "8 chars" in window._cursor_label.text()
+
+
+@pytest.fixture
+def _real_save_svc(mock_file_svc):
+    """Extends mock_file_svc with real FileService.save_file for disk-write assertions."""
+    from src.services.file_service import FileService
+    mock_file_svc.save_file.side_effect = FileService().save_file
+    return mock_file_svc
+
+
+@pytest.fixture
+def window_real_save(_real_save_svc, mock_text_svc, qapp):
+    vm = MainViewModel(_real_save_svc, mock_text_svc)
+    return MainWindow(vm)
+
+
+class TestActionSaveAsHandler:
+    def test_chosen_path_is_saved(self, window_real_save, tmp_path, monkeypatch, qtbot):
+        """getSaveFileName returns path → file saved to that path."""
+        out = tmp_path / "renamed.txt"
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getSaveFileName",
+            lambda *a, **kw: (str(out), ""),
+        )
+        window_real_save._plain_text_edit.setPlainText("save-as content")
+        with qtbot.waitSignal(window_real_save._viewmodel.file_saved, timeout=2000):
+            window_real_save._on_action_save_as()
+        assert out.read_text(encoding="utf-8") == "save-as content"
+        assert window_real_save._file_name_edit.text() == str(out)
+
+    def test_cancelled_dialog_is_no_op(self, window, monkeypatch):
+        """getSaveFileName returns '' → nothing saved."""
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getSaveFileName",
+            lambda *a, **kw: ("", ""),
+        )
+        emitted: list = []
+        window._viewmodel.file_saved.connect(emitted.append)
+        window._on_action_save_as()
+        assert emitted == []
+
+
+class TestConfigPersistence:
+    @pytest.fixture(autouse=True)
+    def isolated_settings(self, tmp_path, monkeypatch):
+        """Redirect QSettings to a temp ini file — never touches real user prefs.
+
+        Patches src.views.main_window.QSettings so _save_settings and
+        _load_settings both hit the temp file. Stores the path on self so test
+        bodies can construct a matching QSettings instance to read/clear it.
+        """
+        from PySide6.QtCore import QSettings
+        tmp_ini = str(tmp_path / "test_settings.ini")
+        monkeypatch.setattr(
+            "src.views.main_window.QSettings",
+            lambda *_: QSettings(tmp_ini, QSettings.Format.IniFormat),
+        )
+        # Expose path so test bodies read/clear the SAME file the window uses
+        self._tmp_ini = tmp_ini
+
+    def test_save_settings_writes_geometry(self, window, qtbot):
+        """_save_settings must write window/geometry to QSettings."""
+        from PySide6.QtCore import QSettings
+        # Clear geometry in the same temp file the window will write to
+        s = QSettings(self._tmp_ini, QSettings.Format.IniFormat)
+        s.remove("window/geometry")
+        window.ui.show()
+        window._save_settings()
+        s2 = QSettings(self._tmp_ini, QSettings.Format.IniFormat)
+        assert s2.value("window/geometry") is not None
+
+    def test_load_settings_does_not_raise_when_empty(self, window):
+        """_load_settings must not raise when no settings have been saved."""
+        from PySide6.QtCore import QSettings
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).clear()
+        window._load_settings()  # must not raise
+
+    def test_save_and_restore_geometry(self, window, qtbot):
+        """Geometry saved by _save_settings is restored by _load_settings."""
+        window.ui.show()
+        window.ui.resize(700, 600)
+        qtbot.wait(10)
+        window._save_settings()
+        window.ui.resize(300, 300)
+        qtbot.wait(10)
+        window._load_settings()
+        qtbot.wait(10)
+        size = window.ui.size()
+        assert size.width() == 700
+        assert size.height() == 600

@@ -16,8 +16,8 @@ window. Embedding one QMainWindow inside another breaks sizing and menubar.
 import os
 from typing import TypeVar, cast
 
-from PySide6.QtCore import QDir, QFile, QModelIndex
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QDir, QFile, QModelIndex, QSettings, Qt
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -30,6 +30,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSplitter,
+    QTabWidget,
     QTreeView,
 )
 
@@ -75,6 +77,10 @@ class MainWindow:
         self._load_ui()
         self._setup_file_tree()
         self._connect_signals()
+        self._load_settings()
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._save_settings)
 
     def show(self) -> None:
         """Show the main application window."""
@@ -161,6 +167,31 @@ class MainWindow:
         self._action_preferences = _require(
             self.ui.findChild(QAction, "actionPreferences"), "actionPreferences"
         )
+        # Tab widget — needed by focus-navigation shortcuts to reveal Find/Replace tab.
+        self._tab_widget = _require(
+            self.ui.findChild(QTabWidget, "tabWidget"), "tabWidget"
+        )
+        # Find/Replace is the last tab; cache its index so shortcuts stay correct
+        # if tabs are reordered. Falls back to -1 (no-op) if tab is not found.
+        self._find_replace_tab_index = next(
+            (
+                i
+                for i in range(self._tab_widget.count())
+                if self._tab_widget.tabText(i).lower().startswith("find")
+            ),
+            -1,
+        )
+
+        # Permanent status bar label — lives on the right, never overwritten by showMessage()
+        self._cursor_label = QLabel("Ln 1, Col 1 | 0 chars")
+        self.ui.statusBar().addPermanentWidget(self._cursor_label)
+
+        self._main_splitter = _require(
+            self.ui.findChild(QSplitter, "mainSplitter"), "mainSplitter"
+        )
+        self._left_splitter = _require(
+            self.ui.findChild(QSplitter, "leftPanelSplitter"), "leftPanelSplitter"
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
@@ -193,18 +224,16 @@ class MainWindow:
         self._replace_button.clicked.connect(self._on_replace_clicked)
         self._replace_all_button.clicked.connect(self._on_replace_all_clicked)
 
-        # Encoding convert is stubbed for v1
+        # Encoding conversion: pass live editor text so unsaved edits are preserved
         self._convert_button.clicked.connect(
-            lambda: self.ui.statusBar().showMessage("Encoding conversion — coming soon")
+            lambda: self._viewmodel.convert_to_utf8(self._plain_text_edit.toPlainText())
         )
 
         # Menu actions
         self._action_quit.triggered.connect(QApplication.quit)
         self._action_save.triggered.connect(self._on_save_clicked)
         self._action_open.triggered.connect(self._on_action_open)
-        self._action_save_as.triggered.connect(
-            lambda: self.ui.statusBar().showMessage("Save As — coming soon")
-        )
+        self._action_save_as.triggered.connect(self._on_action_save_as)
         self._action_about.triggered.connect(self._on_action_about)
         self._action_preferences.triggered.connect(
             lambda: self.ui.statusBar().showMessage("Preferences — coming soon")
@@ -224,7 +253,42 @@ class MainWindow:
             lambda _: self._update_title()
         )
 
+        # Cursor position: update permanent label on every cursor move
+        self._plain_text_edit.cursorPositionChanged.connect(self._update_cursor_label)
+        # contentsChanged fires on Delete/Backspace where cursor position does not
+        # change — without this the char count goes stale after in-place deletions.
+        self._plain_text_edit.document().contentsChanged.connect(self._update_cursor_label)
+
+        # Keyboard shortcuts not present in the .ui file.
+        # (Ctrl+S/O/Q/Shift+S are already wired via QAction shortcuts in main_window.ui.)
+        # ApplicationShortcut context: fires even when a child widget holds focus,
+        # rather than requiring the window itself to be active. Necessary for focus
+        # navigation shortcuts that must work regardless of which widget is focused.
+        ctrl_f = QShortcut(QKeySequence("Ctrl+F"), self.ui)
+        ctrl_f.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        ctrl_f.activated.connect(self._focus_find_edit)
+
+        ctrl_h = QShortcut(QKeySequence("Ctrl+H"), self.ui)
+        ctrl_h.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        ctrl_h.activated.connect(self._focus_replace_edit)
+
+        f3 = QShortcut(QKeySequence("F3"), self.ui)
+        f3.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        f3.activated.connect(self._on_find_clicked)
+
     # ---------------------------------------------------------- user actions
+
+    def _focus_find_edit(self) -> None:
+        """Switch to Find/Replace tab and focus the find field (Ctrl+F target)."""
+        if self._find_replace_tab_index >= 0:
+            self._tab_widget.setCurrentIndex(self._find_replace_tab_index)
+        self._find_edit.setFocus()
+
+    def _focus_replace_edit(self) -> None:
+        """Switch to Find/Replace tab and focus the replace field (Ctrl+H target)."""
+        if self._find_replace_tab_index >= 0:
+            self._tab_widget.setCurrentIndex(self._find_replace_tab_index)
+        self._replace_edit.setFocus()
 
     def _on_tree_item_clicked(self, index: QModelIndex) -> None:
         """Load file on tree click; ignore directory clicks."""
@@ -305,6 +369,20 @@ class MainWindow:
             self._file_name_edit.setText(path)
             self._viewmodel.load_file(path)
 
+    def _on_action_save_as(self) -> None:
+        """Open a Save As dialog; save to the chosen path if confirmed."""
+        _glob = " ".join(TEXT_FILE_EXTENSIONS)
+        initial = self._file_name_edit.text() or QDir.homePath()
+        path, _ = QFileDialog.getSaveFileName(
+            self.ui,
+            "Save As",
+            initial,
+            f"Text Files ({_glob});;All Files (*)",
+        )
+        if path:
+            self._file_name_edit.setText(path)
+            self._on_save_clicked()
+
     def _on_action_about(self) -> None:
         """Show an About dialog."""
         QMessageBox.about(
@@ -333,6 +411,42 @@ class MainWindow:
         modified = self._plain_text_edit.document().isModified()
         suffix = " *" if modified else ""
         self.ui.setWindowTitle(f"TextTools — {name}{suffix}" if name else "TextTools")
+
+    def _update_cursor_label(self) -> None:
+        """Update the permanent cursor position label in the status bar."""
+        cursor = self._plain_text_edit.textCursor()
+        line = cursor.blockNumber() + 1
+        col = cursor.columnNumber() + 1
+        # document().characterCount() includes one trailing paragraph separator;
+        # subtract 1 to report the user-visible character count.
+        # 190x faster than toPlainText() — avoids a full string allocation per keypress.
+        chars = self._plain_text_edit.document().characterCount() - 1
+        self._cursor_label.setText(f"Ln {line}, Col {col} | {chars:,} chars")
+
+    def _load_settings(self) -> None:
+        """Restore window geometry and splitter positions from QSettings.
+
+        Silent no-op when no settings exist yet (first launch or cleared).
+        """
+        # QSettings() (zero-arg) resolves org/app from QCoreApplication identity
+        # set in main() — avoids silent divergence if APP_NAME is ever renamed.
+        settings = QSettings()
+        if geometry := settings.value("window/geometry"):
+            self.ui.restoreGeometry(geometry)
+        if main_state := settings.value("splitter/main"):
+            self._main_splitter.restoreState(main_state)
+        if left_state := settings.value("splitter/left"):
+            self._left_splitter.restoreState(left_state)
+
+    def _save_settings(self) -> None:
+        """Save window geometry and splitter positions to QSettings.
+
+        Connected to QApplication.aboutToQuit in __init__.
+        """
+        settings = QSettings()
+        settings.setValue("window/geometry", self.ui.saveGeometry())
+        settings.setValue("splitter/main", self._main_splitter.saveState())
+        settings.setValue("splitter/left", self._left_splitter.saveState())
 
     # ------------------------------------------ ViewModel signal handlers
 

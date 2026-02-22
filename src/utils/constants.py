@@ -1,7 +1,7 @@
 """Utility constants for TextTools."""
 
 APP_NAME = "TextTools"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 
 DEFAULT_WINDOW_WIDTH = 894
 DEFAULT_WINDOW_HEIGHT = 830
