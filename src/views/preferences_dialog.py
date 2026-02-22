@@ -10,13 +10,12 @@ QSettings keys written here must stay in sync with MainWindow._apply_preferences
 import os
 
 from PySide6.QtCore import QDir, QFile, QObject, QSettings, Signal
-from PySide6.QtGui import QFont
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFileDialog,
-    QFontComboBox,
     QLineEdit,
     QPushButton,
     QRadioButton,
@@ -89,7 +88,7 @@ class PreferencesDialog(QObject):
         self.dialog: QDialog = loaded  # type: ignore[assignment]
 
         self._font_family_combo = _require(
-            self.dialog.findChild(QFontComboBox, "fontFamilyComboBox"),
+            self.dialog.findChild(QComboBox, "fontFamilyComboBox"),
             "fontFamilyComboBox",
         )
         self._font_size_spin = _require(
@@ -136,8 +135,8 @@ class PreferencesDialog(QObject):
     def _load_from_settings(self) -> None:
         """Populate widgets from QSettings (falls back to DEFAULTS for missing keys)."""
         settings = QSettings()
-        self._font_family_combo.setCurrentFont(
-            QFont(str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY])))
+        self._font_family_combo.setCurrentText(
+            str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY]))
         )
         self._font_size_spin.setValue(
             int(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE]))
@@ -158,7 +157,7 @@ class PreferencesDialog(QObject):
     def _write_to_settings(self) -> None:
         """Persist current widget values to QSettings."""
         settings = QSettings()
-        settings.setValue(KEY_FONT_FAMILY, self._font_family_combo.currentFont().family())
+        settings.setValue(KEY_FONT_FAMILY, self._font_family_combo.currentText())
         settings.setValue(KEY_FONT_SIZE, self._font_size_spin.value())
         settings.setValue(KEY_WORD_WRAP, self._word_wrap_cb.isChecked())
         settings.setValue(KEY_LINE_NUMBERS, self._line_numbers_cb.isChecked())

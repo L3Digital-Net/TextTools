@@ -960,7 +960,6 @@
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_as"/>
-    <addaction name="actionPreferences"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -968,6 +967,7 @@
     <property name="title">
      <string>Edit</string>
     </property>
+    <addaction name="actionPreferences"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">

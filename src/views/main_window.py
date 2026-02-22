@@ -458,10 +458,17 @@ class MainWindow:
         )
 
     def _on_action_preferences(self) -> None:
-        """Open the Preferences dialog; apply settings live on Apply/OK."""
+        """Open the Preferences dialog; apply settings after dialog closes.
+
+        Preferences are applied once after exec() returns rather than live via
+        preferences_changed signal. Connecting _apply_preferences during exec()
+        causes app.setPalette() + setRootIndex() to trigger recursive repaints
+        inside the modal event loop → SIGSEGV. Cancel leaves QSettings unchanged
+        so _apply_preferences() is a no-op after Cancel.
+        """
         prefs = PreferencesDialog(self.ui)
-        prefs.preferences_changed.connect(self._apply_preferences)
         prefs.exec()
+        self._apply_preferences()
 
     # ---------------------------------------------------------- merge tab handlers
 
