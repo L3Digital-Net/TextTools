@@ -226,14 +226,16 @@ def main() -> None:
             f"got: {result!r}",
         )
 
-        # --------------------------------------------------------------- stubs
-        section("Stub Actions")
+        # ------------------------------------------------------- encoding convert
+        section("Encoding Conversion")
 
+        # rep.txt was loaded as UTF-8; clicking Convert on an already-UTF-8
+        # file must show the "already UTF-8" status message (not save again).
         window._convert_button.click()
         app.processEvents()
         check(
-            "Convert shows coming-soon status",
-            "coming soon" in window.ui.statusBar().currentMessage().lower(),
+            "Convert on UTF-8 file shows already-UTF-8 status",
+            "already utf-8" in window.ui.statusBar().currentMessage().lower(),
         )
 
     # ----------------------------------------------------------------------- summary
