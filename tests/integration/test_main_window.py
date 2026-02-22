@@ -415,3 +415,28 @@ class TestConvertEncodingHandler:
         with patch.object(window._viewmodel, "convert_to_utf8") as mock_convert:
             window._convert_button.click()
         mock_convert.assert_called_once_with("hello")
+
+
+class TestStatusBarCursorPosition:
+    def test_cursor_label_exists(self, window):
+        """A permanent cursor label must be visible in the status bar."""
+        assert hasattr(window, "_cursor_label")
+        assert window._cursor_label.text() != ""
+
+    def test_cursor_label_shows_line_and_col(self, window, qtbot):
+        """Moving the cursor must update the cursor label."""
+        window._plain_text_edit.setPlainText("first line\nsecond line")
+        # Move cursor to start of second line (position 11)
+        cursor = window._plain_text_edit.textCursor()
+        cursor.setPosition(11)
+        window._plain_text_edit.setTextCursor(cursor)
+        qtbot.wait(10)
+        label_text = window._cursor_label.text()
+        assert "Ln 2" in label_text
+        assert "Col 1" in label_text
+
+    def test_cursor_label_shows_char_count(self, window, qtbot):
+        """The cursor label must include the document character count."""
+        window._plain_text_edit.setPlainText("hello")
+        qtbot.wait(10)
+        assert "5" in window._cursor_label.text()

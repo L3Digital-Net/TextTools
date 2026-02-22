@@ -177,6 +177,10 @@ class MainWindow:
             -1,
         )
 
+        # Permanent status bar label — lives on the right, never overwritten by showMessage()
+        self._cursor_label = QLabel("Ln 1, Col 1 | 0 chars")
+        self.ui.statusBar().addPermanentWidget(self._cursor_label)
+
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
         self._fs_model = QFileSystemModel(self.ui)
@@ -238,6 +242,9 @@ class MainWindow:
         self._plain_text_edit.document().modificationChanged.connect(
             lambda _: self._update_title()
         )
+
+        # Cursor position: update permanent label on every cursor move
+        self._plain_text_edit.cursorPositionChanged.connect(self._update_cursor_label)
 
         # Keyboard shortcuts not present in the .ui file.
         # (Ctrl+S/O/Q/Shift+S are already wired via QAction shortcuts in main_window.ui.)
@@ -377,6 +384,14 @@ class MainWindow:
         modified = self._plain_text_edit.document().isModified()
         suffix = " *" if modified else ""
         self.ui.setWindowTitle(f"TextTools — {name}{suffix}" if name else "TextTools")
+
+    def _update_cursor_label(self) -> None:
+        """Update the permanent cursor position label in the status bar."""
+        cursor = self._plain_text_edit.textCursor()
+        line = cursor.blockNumber() + 1
+        col = cursor.columnNumber() + 1
+        chars = len(self._plain_text_edit.toPlainText())
+        self._cursor_label.setText(f"Ln {line}, Col {col} | {chars:,} chars")
 
     # ------------------------------------------ ViewModel signal handlers
 
