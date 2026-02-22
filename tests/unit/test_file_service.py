@@ -68,3 +68,49 @@ class TestSaveFile:
         doc = TextDocument(filepath=str(f), content="new content")
         svc.save_file(doc)
         assert f.read_text(encoding="utf-8") == "new content"
+
+
+class TestDetectEncoding:
+    """Tests for _detect_encoding — module-level function in file_service.py."""
+
+    def test_utf16_le_detected_by_chardet(self):
+        """UTF-16 with BOM gives chardet confidence=1.0, exercising the chardet branch.
+
+        Using encode('utf-16') emits a BOM so chardet reliably returns 'UTF-16'.
+        Raw UTF-16-LE without BOM requires long content for chardet to reach the
+        0.7 confidence threshold, making it fragile for short test strings.
+        """
+        pytest.importorskip("chardet")  # skip gracefully if chardet not installed
+        from src.services.file_service import _detect_encoding
+
+        # encode('utf-16') prepends a BOM; chardet returns 'UTF-16' with confidence=1.0
+        raw = "hello world".encode("utf-16")
+        encoding = _detect_encoding(raw)
+        # chardet returns 'UTF-16' (with BOM) or 'utf-16le'/'utf-16-le' (without BOM)
+        assert encoding.lower() in ("utf-16", "utf-16le", "utf-16-le")
+
+    def test_falls_back_to_utf8_for_undetectable_bytes(self):
+        """Empty bytes: chardet returns None encoding → fallback to utf-8."""
+        from src.services.file_service import _detect_encoding
+
+        encoding = _detect_encoding(b"")
+        assert encoding == "utf-8"
+
+
+class TestAtomicSaveCleanup:
+    """Verify temp file is cleaned up when os.replace fails (lines 70-75)."""
+
+    def test_temp_file_removed_on_replace_failure(self, svc, tmp_path, monkeypatch):
+        removed: list[str] = []
+
+        def _failing_replace(src: str, dst: str) -> None:
+            raise OSError("simulated disk full")
+
+        monkeypatch.setattr("src.services.file_service.os.replace", _failing_replace)
+        monkeypatch.setattr("src.services.file_service.os.unlink", lambda p: removed.append(p))
+
+        doc = TextDocument(filepath=str(tmp_path / "out.txt"), content="data")
+        with pytest.raises(OSError, match="simulated disk full"):
+            svc.save_file(doc)
+
+        assert len(removed) == 1, "temp file should have been unlinked on failure"
