@@ -108,3 +108,45 @@ class TestMergeTab:
         label = window.ui.findChild(QLabel, "mergeComingSoonLabel")
         assert label is not None
         assert "coming soon" in label.text().lower()
+
+
+class TestRequireHelper:
+    def test_raises_for_none_widget(self):
+        from src.views.main_window import _require
+
+        with pytest.raises(RuntimeError, match="Required widget 'myWidget'"):
+            _require(None, "myWidget")
+
+    def test_returns_widget_when_present(self):
+        from src.views.main_window import _require
+
+        sentinel = object()
+        assert _require(sentinel, "any") is sentinel
+
+
+class TestWindowShow:
+    def test_show_does_not_raise(self, window):
+        # Covers MainWindow.show() — line 81
+        window.show()
+
+
+class TestLoadUiErrors:
+    def test_raises_if_ui_file_unreadable(self, monkeypatch, qapp):
+        from unittest.mock import MagicMock
+        from src.views.main_window import MainWindow
+
+        monkeypatch.setattr(
+            "src.views.main_window.QFile.open", lambda *_: False
+        )
+        with pytest.raises(RuntimeError, match="Cannot open UI file"):
+            MainWindow(MagicMock())
+
+    def test_raises_if_loader_returns_none(self, monkeypatch, qapp):
+        from unittest.mock import MagicMock
+        from src.views.main_window import MainWindow
+
+        monkeypatch.setattr(
+            "src.views.main_window.QUiLoader.load", lambda *_: None
+        )
+        with pytest.raises(RuntimeError, match="QUiLoader failed"):
+            MainWindow(MagicMock())
