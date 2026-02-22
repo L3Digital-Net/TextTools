@@ -179,8 +179,10 @@ class MainViewModel(QObject):
             self.status_changed.emit("No document loaded")
             return
         # Normalise: strip dashes and lowercase so 'UTF-8', 'utf-8', 'utf8' all match.
+        # UTF-8-SIG is the chardet name for UTF-8 with a BOM — treat it as already UTF-8
+        # to avoid needlessly re-saving BOM files.
         current_encoding = self._current_document.encoding.lower().replace("-", "")
-        if current_encoding in ("utf8",):
+        if current_encoding in {"utf8", "utf8sig"}:
             self.status_changed.emit("File is already UTF-8")
             return
         doc = TextDocument(
@@ -198,3 +200,4 @@ class MainViewModel(QObject):
             msg = f"Cannot convert file: {e}"
             logger.error(msg)
             self.error_occurred.emit(msg)
+            self.status_changed.emit("Error converting file")
