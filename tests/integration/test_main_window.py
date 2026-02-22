@@ -496,25 +496,42 @@ class TestActionSaveAsHandler:
 
 
 class TestConfigPersistence:
+    @pytest.fixture(autouse=True)
+    def isolated_settings(self, tmp_path, monkeypatch):
+        """Redirect QSettings to a temp ini file — never touches real user prefs.
+
+        Patches src.views.main_window.QSettings so _save_settings and
+        _load_settings both hit the temp file. Stores the path on self so test
+        bodies can construct a matching QSettings instance to read/clear it.
+        """
+        from PySide6.QtCore import QSettings
+        tmp_ini = str(tmp_path / "test_settings.ini")
+        monkeypatch.setattr(
+            "src.views.main_window.QSettings",
+            lambda *_: QSettings(tmp_ini, QSettings.Format.IniFormat),
+        )
+        # Expose path so test bodies read/clear the SAME file the window uses
+        self._tmp_ini = tmp_ini
+
     def test_save_settings_writes_geometry(self, window, qtbot):
         """_save_settings must write window/geometry to QSettings."""
         from PySide6.QtCore import QSettings
-        s = QSettings("TextTools", "TextTools")
+        # Clear geometry in the same temp file the window will write to
+        s = QSettings(self._tmp_ini, QSettings.Format.IniFormat)
         s.remove("window/geometry")
         window.ui.show()
         window._save_settings()
-        s2 = QSettings("TextTools", "TextTools")
+        s2 = QSettings(self._tmp_ini, QSettings.Format.IniFormat)
         assert s2.value("window/geometry") is not None
 
     def test_load_settings_does_not_raise_when_empty(self, window):
         """_load_settings must not raise when no settings have been saved."""
         from PySide6.QtCore import QSettings
-        QSettings("TextTools", "TextTools").clear()
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).clear()
         window._load_settings()  # must not raise
 
     def test_save_and_restore_geometry(self, window, qtbot):
         """Geometry saved by _save_settings is restored by _load_settings."""
-        from PySide6.QtCore import QSettings
         window.ui.show()
         window.ui.resize(700, 600)
         qtbot.wait(10)
