@@ -11,8 +11,8 @@ TextTools is a PySide6 desktop application for text processing on Linux. Its pla
 ## Commands
 
 ```bash
-# Run the application
-python src/main.py
+# Run the application (must be run from project root)
+python -m src.main
 
 # Run all tests (coverage is on by default via pyproject.toml addopts)
 pytest tests/

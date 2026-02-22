@@ -6,14 +6,21 @@ This is the only place in the app where concrete types are instantiated.
 
 import logging
 import sys
+from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
+# Insert project root so `from src.xxx` imports resolve regardless of how the
+# script is invoked (python src/main.py, python -m src.main, full path, IDE).
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
-from src.services.file_service import FileService
-from src.services.text_processing_service import TextProcessingService
-from src.utils.constants import APP_NAME, APP_VERSION
-from src.viewmodels.main_viewmodel import MainViewModel
-from src.views.main_window import MainWindow
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+from src.services.file_service import FileService  # noqa: E402
+from src.services.text_processing_service import TextProcessingService  # noqa: E402
+from src.utils.constants import APP_NAME, APP_VERSION  # noqa: E402
+from src.viewmodels.main_viewmodel import MainViewModel  # noqa: E402
+from src.views.main_window import MainWindow  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
