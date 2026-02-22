@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Plugin Routing — Qt Plugins (MANDATORY)
+
+This is a PySide6/Qt project. Always invoke the appropriate plugin skill before writing code:
+
+| Task | Invoke |
+|------|--------|
+| Write or add tests (pytest-qt, QTest) | `qt:qtest-patterns` skill |
+| Run the test suite or check pass/fail | `qt:run` skill |
+| Measure test coverage, find gaps | `qt:coverage` skill → `qt:qt-coverage-workflow` skill |
+| Generate tests for uncovered lines | `qt:generate` skill (delegates to `qt:test-generator` agent) |
+| Visual/GUI interaction testing | `qt:visual` skill (delegates to `qt:gui-tester` agent) |
+| Any new feature or UI work | `qt:qtest-patterns` after implementation, `qt:visual` to verify |
+
+**Rule**: Never write Qt/PySide6 tests without first consulting `qt:qtest-patterns`. Never run tests manually via raw `pytest` when `qt:run` is available — use the skill so the agent can capture results and act on failures.
+
 ## Project Overview
 
 TextTools is a PySide6 desktop application for text processing on Linux. Its planned features are encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management. **The MVVM framework and UI shell are in place, but all TextTools feature logic is unimplemented — the current source files are scaffolding/template code.** `DESIGN.md` is the authoritative spec for what needs to be built (UI mockups, widget objectNames, feature acceptance criteria, data flow diagrams).

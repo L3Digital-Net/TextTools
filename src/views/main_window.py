@@ -20,6 +20,7 @@ from PySide6.QtCore import QDir, QFile, QModelIndex, QSettings, Qt
 from PySide6.QtGui import QAction, QColor, QFont, QKeySequence, QPalette, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QCheckBox,
     QFileDialog,
@@ -247,8 +248,6 @@ class MainWindow:
 
     def _setup_merge_tab(self) -> None:
         """Configure the merge list widget (drag-drop mode set programmatically)."""
-        from PySide6.QtWidgets import QAbstractItemView
-
         self._merge_file_list.setDragDropMode(
             QAbstractItemView.DragDropMode.InternalMove
         )
@@ -264,9 +263,12 @@ class MainWindow:
 
         # Cleaning: each checkbox triggers a fresh apply when a doc is loaded.
         # The checkboxes act as "apply now" toggles, not deferred configuration.
-        self._trim_cb.stateChanged.connect(self._on_clean_requested)
-        self._clean_cb.stateChanged.connect(self._on_clean_requested)
-        self._remove_tabs_cb.stateChanged.connect(self._on_clean_requested)
+        # checkStateChanged replaces the deprecated stateChanged (Qt 6.7+); both
+        # work but stateChanged passes int while checkStateChanged passes Qt.CheckState.
+        # _on_clean_requested ignores the argument so either signature is compatible.
+        self._trim_cb.checkStateChanged.connect(self._on_clean_requested)
+        self._clean_cb.checkStateChanged.connect(self._on_clean_requested)
+        self._remove_tabs_cb.checkStateChanged.connect(self._on_clean_requested)
 
         # Find / Replace
         self._find_button.clicked.connect(self._on_find_clicked)

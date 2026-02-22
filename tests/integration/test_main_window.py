@@ -30,8 +30,20 @@ def mock_text_svc():
 
 @pytest.fixture
 def window(mock_file_svc, mock_text_svc, qapp):
+    """Construct a MainWindow and clean up the aboutToQuit connection on teardown.
+
+    MainWindow.__init__ connects app.aboutToQuit → window._save_settings. Without
+    teardown, every test that uses this fixture adds another live connection to the
+    session-scoped QApplication, preventing GC of the window objects for the whole
+    test session and triggering save_settings for every window at program exit.
+    """
     vm = MainViewModel(mock_file_svc, mock_text_svc)
-    return MainWindow(vm)
+    win = MainWindow(vm)
+    yield win
+    try:
+        qapp.aboutToQuit.disconnect(win._save_settings)
+    except RuntimeError:
+        pass  # already disconnected or never connected
 
 
 class TestWindowTitle:
@@ -607,8 +619,18 @@ class TestMergeWorkflow:
         assert list_widget.count() == 1
         assert list_widget.item(0).text() == "hello.txt"
 
-    def test_merge_empty_list_shows_error(self, window, qtbot):
-        """Clicking Merge with no files emits error_occurred."""
+    def test_merge_empty_list_shows_error(self, window, monkeypatch, qtbot):
+        """Clicking Merge with no files emits error_occurred and shows an error dialog.
+
+        Must monkeypatch QMessageBox.critical: the signal is connected to _on_error
+        which calls QMessageBox.critical() (a blocking modal). The modal creates a
+        nested event loop that blocks waitSignal's slot from ever firing in offscreen
+        mode — the dialog is never dismissed so the test hangs without this patch.
+        """
+        monkeypatch.setattr(
+            "src.views.main_window.QMessageBox.critical",
+            lambda *a, **kw: None,
+        )
         with qtbot.waitSignal(window._viewmodel.error_occurred, timeout=1000) as blocker:
             window._viewmodel.execute_merge()
         assert "No files in merge list" in blocker.args[0]
