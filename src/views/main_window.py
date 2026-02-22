@@ -17,7 +17,7 @@ import os
 from typing import TypeVar, cast
 
 from PySide6.QtCore import QDir, QFile, QModelIndex, QSettings, Qt
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QColor, QFont, QKeySequence, QPalette, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QFileSystemModel,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -38,6 +39,16 @@ from PySide6.QtWidgets import (
 from src.models.cleaning_options import CleaningOptions
 from src.utils.constants import APP_VERSION, TEXT_FILE_EXTENSIONS
 from src.viewmodels.main_viewmodel import MainViewModel
+from src.views.preferences_dialog import (
+    DEFAULTS,
+    KEY_DEFAULT_DIR,
+    KEY_FONT_FAMILY,
+    KEY_FONT_SIZE,
+    KEY_LINE_NUMBERS,
+    KEY_THEME,
+    KEY_WORD_WRAP,
+    PreferencesDialog,
+)
 
 _W = TypeVar("_W")
 
@@ -76,8 +87,10 @@ class MainWindow:
         self._filepath: str = ""
         self._load_ui()
         self._setup_file_tree()
+        self._setup_merge_tab()
         self._connect_signals()
         self._load_settings()
+        self._apply_preferences()
         app = QApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._save_settings)
@@ -193,6 +206,33 @@ class MainWindow:
             self.ui.findChild(QSplitter, "leftPanelSplitter"), "leftPanelSplitter"
         )
 
+        # Merge tab widgets
+        self._merge_file_list = _require(
+            self.ui.findChild(QListWidget, "mergeFileList"), "mergeFileList"
+        )
+        self._merge_move_up_button = _require(
+            self.ui.findChild(QPushButton, "mergeMoveUpButton"), "mergeMoveUpButton"
+        )
+        self._merge_move_down_button = _require(
+            self.ui.findChild(QPushButton, "mergeMoveDownButton"), "mergeMoveDownButton"
+        )
+        self._merge_remove_button = _require(
+            self.ui.findChild(QPushButton, "mergeRemoveButton"), "mergeRemoveButton"
+        )
+        self._merge_add_current_button = _require(
+            self.ui.findChild(QPushButton, "mergeAddCurrentButton"),
+            "mergeAddCurrentButton",
+        )
+        self._merge_add_files_button = _require(
+            self.ui.findChild(QPushButton, "mergeAddFilesButton"), "mergeAddFilesButton"
+        )
+        self._merge_separator_edit = _require(
+            self.ui.findChild(QLineEdit, "mergeSeparatorEdit"), "mergeSeparatorEdit"
+        )
+        self._merge_button = _require(
+            self.ui.findChild(QPushButton, "mergeButton"), "mergeButton"
+        )
+
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
         self._fs_model = QFileSystemModel(self.ui)
@@ -204,6 +244,15 @@ class MainWindow:
         # Hide size/type/date columns — name column only
         for col in range(1, self._fs_model.columnCount()):
             self._file_tree_view.hideColumn(col)
+
+    def _setup_merge_tab(self) -> None:
+        """Configure the merge list widget (drag-drop mode set programmatically)."""
+        from PySide6.QtWidgets import QAbstractItemView
+
+        self._merge_file_list.setDragDropMode(
+            QAbstractItemView.DragDropMode.InternalMove
+        )
+        self._merge_file_list.setDefaultDropAction(Qt.DropAction.MoveAction)
 
     def _connect_signals(self) -> None:
         """Wire UI events to ViewModel slots and ViewModel signals to UI handlers."""
@@ -235,9 +284,23 @@ class MainWindow:
         self._action_open.triggered.connect(self._on_action_open)
         self._action_save_as.triggered.connect(self._on_action_save_as)
         self._action_about.triggered.connect(self._on_action_about)
-        self._action_preferences.triggered.connect(
-            lambda: self.ui.statusBar().showMessage("Preferences — coming soon")
+        self._action_preferences.triggered.connect(self._on_action_preferences)
+
+        # Merge tab
+        self._merge_add_current_button.clicked.connect(
+            self._viewmodel.add_current_to_merge
         )
+        self._merge_add_files_button.clicked.connect(self._on_merge_add_files_clicked)
+        self._merge_remove_button.clicked.connect(self._on_merge_remove_clicked)
+        self._merge_move_up_button.clicked.connect(self._on_merge_move_up_clicked)
+        self._merge_move_down_button.clicked.connect(self._on_merge_move_down_clicked)
+        self._merge_separator_edit.textChanged.connect(
+            self._viewmodel.set_merge_separator
+        )
+        self._merge_button.clicked.connect(self._viewmodel.execute_merge)
+        # Drag-drop reorder: rowsMoved fires after an internal drag completes.
+        # from_idx/to_idx are derived from start and destination_row of the move.
+        self._merge_file_list.model().rowsMoved.connect(self._on_merge_rows_moved)
 
         # ViewModel → View
         self._viewmodel.document_loaded.connect(self._on_document_loaded)
@@ -246,6 +309,7 @@ class MainWindow:
         self._viewmodel.file_saved.connect(self._on_file_saved)
         self._viewmodel.error_occurred.connect(self._on_error)
         self._viewmodel.status_changed.connect(self._on_status_changed)
+        self._viewmodel.merge_list_changed.connect(self._on_merge_list_changed)
 
         # Title bar: modificationChanged fires only when isModified() flips, not on
         # every keystroke — avoids redundant title repaints and gives a clean signal.
@@ -393,6 +457,53 @@ class MainWindow:
             "Built with Python 3.14 and PySide6.",
         )
 
+    def _on_action_preferences(self) -> None:
+        """Open the Preferences dialog; apply settings live on Apply/OK."""
+        prefs = PreferencesDialog(self.ui)
+        prefs.preferences_changed.connect(self._apply_preferences)
+        prefs.exec()
+
+    # ---------------------------------------------------------- merge tab handlers
+
+    def _on_merge_add_files_clicked(self) -> None:
+        """Open a multi-select file dialog and add chosen files to the merge list."""
+        paths, _ = QFileDialog.getOpenFileNames(
+            self.ui, "Add Files to Merge", QDir.homePath()
+        )
+        if paths:
+            self._viewmodel.add_files_to_merge(paths)
+
+    def _on_merge_remove_clicked(self) -> None:
+        """Remove the currently selected item from the merge list."""
+        row = self._merge_file_list.currentRow()
+        if row >= 0:
+            self._viewmodel.remove_from_merge(row)
+
+    def _on_merge_move_up_clicked(self) -> None:
+        """Move the selected merge item one position earlier."""
+        row = self._merge_file_list.currentRow()
+        if row > 0:
+            self._viewmodel.move_merge_item(row, row - 1)
+            self._merge_file_list.setCurrentRow(row - 1)
+
+    def _on_merge_move_down_clicked(self) -> None:
+        """Move the selected merge item one position later."""
+        row = self._merge_file_list.currentRow()
+        if row >= 0 and row < self._merge_file_list.count() - 1:
+            self._viewmodel.move_merge_item(row, row + 2)
+            self._merge_file_list.setCurrentRow(row + 1)
+
+    def _on_merge_rows_moved(
+        self,
+        _parent: object,
+        start: int,
+        _end: int,
+        _dest_parent: object,
+        dest_row: int,
+    ) -> None:
+        """Sync a drag-drop reorder in mergeFileList to the ViewModel."""
+        self._viewmodel.move_merge_item(start, dest_row)
+
     # ---------------------------------------------------------- title-bar helpers
 
     def _set_editor_text(self, content: str) -> None:
@@ -448,6 +559,60 @@ class MainWindow:
         settings.setValue("splitter/main", self._main_splitter.saveState())
         settings.setValue("splitter/left", self._left_splitter.saveState())
 
+    def _apply_preferences(self) -> None:
+        """Apply user preferences from QSettings to the editor.
+
+        Called once on startup (after _load_settings) and whenever
+        PreferencesDialog emits preferences_changed — keeps the editor live.
+        QSettings keys read here must stay in sync with preferences_dialog.py.
+        """
+        settings = QSettings()
+
+        # Font
+        family = str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY]))
+        size = int(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE]))
+        self._plain_text_edit.setFont(QFont(family, size))
+
+        # Word wrap
+        wrap = settings.value(KEY_WORD_WRAP, DEFAULTS[KEY_WORD_WRAP], type=bool)
+        self._plain_text_edit.setLineWrapMode(
+            QPlainTextEdit.LineWrapMode.WidgetWidth
+            if wrap
+            else QPlainTextEdit.LineWrapMode.NoWrap
+        )
+
+        # Theme — Fusion style with a dark palette; restore system default for light.
+        theme = str(settings.value(KEY_THEME, DEFAULTS[KEY_THEME]))
+        app = QApplication.instance()
+        if app is not None:
+            if theme == "dark":
+                app.setStyle("Fusion")
+                palette = QPalette()
+                palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+                palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
+                palette.setColor(QPalette.ColorRole.Base, QColor(25, 25, 25))
+                palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+                palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
+                palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+                palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
+                palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+                palette.setColor(
+                    QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black
+                )
+                app.setPalette(palette)
+            else:
+                app.setPalette(QPalette())  # restore system default
+
+        # Default directory — update file tree root to user's preferred start location.
+        default_dir = str(settings.value(KEY_DEFAULT_DIR, DEFAULTS[KEY_DEFAULT_DIR]))
+        if os.path.isdir(default_dir):
+            self._fs_model.setRootPath(default_dir)
+            self._file_tree_view.setRootIndex(self._fs_model.index(default_dir))
+
+        # Line numbers: stored in QSettings; rendering deferred (LineNumberEditor
+        # requires a custom QPlainTextEdit subclass — separate follow-on task).
+        _ = settings.value(KEY_LINE_NUMBERS, DEFAULTS[KEY_LINE_NUMBERS], type=bool)
+
     # ------------------------------------------ ViewModel signal handlers
 
     def _on_document_loaded(self, content: str) -> None:
@@ -481,3 +646,8 @@ class MainWindow:
 
     def _on_status_changed(self, message: str) -> None:
         self.ui.statusBar().showMessage(message)
+
+    def _on_merge_list_changed(self, names: list[str]) -> None:
+        """Repopulate mergeFileList from the ViewModel's display-name list."""
+        self._merge_file_list.clear()
+        self._merge_file_list.addItems(names)

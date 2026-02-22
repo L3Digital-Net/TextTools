@@ -1,7 +1,7 @@
-"""TextProcessingService — stateless text cleaning operations.
+"""TextProcessingService — stateless text cleaning and merge operations.
 
 No Qt imports. No file I/O. Each method is a pure function wrapped in a class
-for dependency injection. Called by MainViewModel.apply_cleaning().
+for dependency injection. Called by MainViewModel.apply_cleaning() and execute_merge().
 If the CleaningOptions fields change, update apply_options() below.
 """
 
@@ -9,6 +9,7 @@ import logging
 import re
 
 from src.models.cleaning_options import CleaningOptions
+from src.models.text_document import TextDocument
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,14 @@ class TextProcessingService:
         """Strip leading tabs and spaces from the start of each line."""
         lines = text.splitlines()
         return "\n".join(line.lstrip(" \t") for line in lines)
+
+    def merge_documents(self, docs: list[TextDocument], separator: str) -> str:
+        """Concatenate document contents with a separator between each.
+
+        Empty list returns "". Single document returns its content with no separator.
+        Separator is inserted between documents, not appended after the last one.
+        """
+        return separator.join(doc.content for doc in docs)
 
     def apply_options(self, text: str, options: CleaningOptions) -> str:
         """Apply enabled cleaning operations in a fixed order.

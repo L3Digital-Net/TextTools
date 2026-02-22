@@ -8,6 +8,7 @@ If signal or slot signatures change, update MainWindow._connect_signals() in loc
 """
 
 import logging
+import os
 from typing import Protocol
 
 from PySide6.QtCore import QObject, Signal, Slot
@@ -31,6 +32,8 @@ class TextServiceProtocol(Protocol):
 
     def apply_options(self, text: str, options: CleaningOptions) -> str: ...
 
+    def merge_documents(self, docs: list[TextDocument], separator: str) -> str: ...
+
 
 class MainViewModel(QObject):
     """Presentation logic for the main window.
@@ -44,6 +47,8 @@ class MainViewModel(QObject):
         file_saved: Emitted with filepath after a successful save.
         error_occurred: Emitted with error message on any failure.
         status_changed: Emitted with status bar text.
+        merge_list_changed: Emitted with list of display names (filename only) when
+            the merge queue changes. View re-populates mergeFileList on receipt.
     """
 
     document_loaded = Signal(str)
@@ -52,6 +57,7 @@ class MainViewModel(QObject):
     file_saved = Signal(str)
     error_occurred = Signal(str)
     status_changed = Signal(str)
+    merge_list_changed = Signal(list)  # list[str] of display names
 
     def __init__(
         self,
@@ -62,6 +68,9 @@ class MainViewModel(QObject):
         self._file_service = file_service
         self._text_service = text_service
         self._current_document: TextDocument | None = None
+        # Merge queue — ordered list of absolute paths; separator inserted between files.
+        self._merge_filepaths: list[str] = []
+        self._merge_separator: str = "\n"
 
     @Slot(str)
     def load_file(self, filepath: str) -> None:
@@ -201,3 +210,76 @@ class MainViewModel(QObject):
             logger.error(msg)
             self.error_occurred.emit(msg)
             self.status_changed.emit("Error converting file")
+
+    # ── Merge queue ────────────────────────────────────────────────────────────
+
+    def _emit_merge_list(self) -> None:
+        """Emit merge_list_changed with current display names (filename only)."""
+        names = [os.path.basename(p) for p in self._merge_filepaths]
+        self.merge_list_changed.emit(names)
+
+    @Slot()
+    def add_current_to_merge(self) -> None:
+        """Append the currently loaded file's path to the merge queue."""
+        if self._current_document is None:
+            self.error_occurred.emit("No file loaded — open a file first")
+            return
+        path = self._current_document.filepath
+        if path not in self._merge_filepaths:
+            self._merge_filepaths.append(path)
+            self._emit_merge_list()
+
+    @Slot(list)
+    def add_files_to_merge(self, filepaths: list[str]) -> None:
+        """Append multiple filepaths to the merge queue; silently drop duplicates."""
+        changed = False
+        for path in filepaths:
+            if path not in self._merge_filepaths:
+                self._merge_filepaths.append(path)
+                changed = True
+        if changed:
+            self._emit_merge_list()
+
+    @Slot(int)
+    def remove_from_merge(self, index: int) -> None:
+        """Remove the item at the given index from the merge queue."""
+        if 0 <= index < len(self._merge_filepaths):
+            self._merge_filepaths.pop(index)
+            self._emit_merge_list()
+
+    @Slot(int, int)
+    def move_merge_item(self, from_idx: int, to_idx: int) -> None:
+        """Move merge queue item from from_idx to to_idx (before that position)."""
+        n = len(self._merge_filepaths)
+        if from_idx == to_idx or not (0 <= from_idx < n) or not (0 <= to_idx <= n):
+            return
+        item = self._merge_filepaths.pop(from_idx)
+        # Adjust destination index after the pop when moving forward.
+        insert_at = to_idx if to_idx <= from_idx else to_idx - 1
+        self._merge_filepaths.insert(insert_at, item)
+        self._emit_merge_list()
+
+    @Slot(str)
+    def set_merge_separator(self, sep: str) -> None:
+        """Update the separator inserted between merged files."""
+        self._merge_separator = sep
+
+    @Slot()
+    def execute_merge(self) -> None:
+        """Read all queued files, merge with separator, emit document_loaded."""
+        if not self._merge_filepaths:
+            self.error_occurred.emit("No files in merge list")
+            return
+        docs: list[TextDocument] = []
+        for path in self._merge_filepaths:
+            try:
+                docs.append(self._file_service.open_file(path))
+            except (FileNotFoundError, PermissionError, OSError) as e:
+                name = os.path.basename(path)
+                self.error_occurred.emit(f"Cannot read {name}: {e}")
+                return
+        merged = self._text_service.merge_documents(docs, self._merge_separator)
+        self.document_loaded.emit(merged)
+        n = len(docs)
+        noun = "file" if n == 1 else "files"
+        self.status_changed.emit(f"Merged {n} {noun}")

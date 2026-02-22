@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PreferencesDialog</class>
+ <widget class="QDialog" name="PreferencesDialog">
+  <property name="windowTitle">
+   <string>Preferences</string>
+  </property>
+  <property name="minimumSize">
+   <size><width>420</width><height>0</height></size>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing"><number>12</number></property>
+   <property name="leftMargin"><number>12</number></property>
+   <property name="topMargin"><number>12</number></property>
+   <property name="rightMargin"><number>12</number></property>
+   <property name="bottomMargin"><number>12</number></property>
+
+   <!-- Editor settings -->
+   <item>
+    <widget class="QGroupBox" name="editorGroupBox">
+     <property name="title"><string>Editor</string></property>
+     <layout class="QVBoxLayout" name="editorLayout">
+      <property name="spacing"><number>6</number></property>
+      <item>
+       <layout class="QHBoxLayout" name="fontRowLayout">
+        <item>
+         <widget class="QLabel" name="fontLabel">
+          <property name="text"><string>Font:</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFontComboBox" name="fontFamilyComboBox">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="fontSizeSpinBox">
+          <property name="minimum"><number>6</number></property>
+          <property name="maximum"><number>72</number></property>
+          <property name="value"><number>12</number></property>
+          <property name="suffix"><string> pt</string></property>
+          <property name="maximumWidth"><number>72</number></property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="wordWrapCheckBox">
+        <property name="text"><string>Wrap long lines</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="lineNumbersCheckBox">
+        <property name="text"><string>Show line numbers (stored — renderer coming soon)</string></property>
+        <property name="checked"><bool>true</bool></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- Appearance settings -->
+   <item>
+    <widget class="QGroupBox" name="appearanceGroupBox">
+     <property name="title"><string>Appearance</string></property>
+     <layout class="QHBoxLayout" name="appearanceLayout">
+      <property name="spacing"><number>12</number></property>
+      <item>
+       <widget class="QLabel" name="themeLabel">
+        <property name="text"><string>Theme:</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="themeLightRadio">
+        <property name="text"><string>Light</string></property>
+        <property name="checked"><bool>true</bool></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="themeDarkRadio">
+        <property name="text"><string>Dark</string></property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="themeSpacer">
+        <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+        <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- Files settings -->
+   <item>
+    <widget class="QGroupBox" name="filesGroupBox">
+     <property name="title"><string>Files</string></property>
+     <layout class="QHBoxLayout" name="filesLayout">
+      <property name="spacing"><number>6</number></property>
+      <item>
+       <widget class="QLabel" name="defaultDirLabel">
+        <property name="text"><string>Default directory:</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="defaultDirectoryEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="browseDirectoryButton">
+        <property name="text"><string>...</string></property>
+        <property name="maximumWidth"><number>32</number></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- Dialog buttons: Cancel | Apply | OK -->
+   <item>
+    <layout class="QHBoxLayout" name="buttonBarLayout">
+     <property name="spacing"><number>6</number></property>
+     <item>
+      <spacer name="buttonBarSpacer">
+       <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+       <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelButton">
+       <property name="text"><string>Cancel</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="applyButton">
+       <property name="text"><string>Apply</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="okButton">
+       <property name="text"><string>OK</string></property>
+       <property name="default"><bool>true</bool></property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

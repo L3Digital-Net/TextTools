@@ -3,6 +3,7 @@
 import pytest
 
 from src.models.cleaning_options import CleaningOptions
+from src.models.text_document import TextDocument
 from src.services.text_processing_service import TextProcessingService
 
 
@@ -106,3 +107,27 @@ class TestApplyOptions:
         )
         result = svc.apply_options(text, opts)
         assert result == "hello world"
+
+
+class TestMergeDocuments:
+    def _doc(self, content: str) -> TextDocument:
+        return TextDocument(filepath="f.txt", content=content)
+
+    def test_merge_two_docs(self, svc):
+        docs = [self._doc("aaa"), self._doc("bbb")]
+        assert svc.merge_documents(docs, "\n") == "aaa\nbbb"
+
+    def test_merge_custom_separator(self, svc):
+        docs = [self._doc("aaa"), self._doc("bbb")]
+        assert svc.merge_documents(docs, "\n---\n") == "aaa\n---\nbbb"
+
+    def test_merge_single_doc(self, svc):
+        docs = [self._doc("only")]
+        assert svc.merge_documents(docs, "\n") == "only"
+
+    def test_merge_empty_list(self, svc):
+        assert svc.merge_documents([], "\n") == ""
+
+    def test_merge_three_docs(self, svc):
+        docs = [self._doc("a"), self._doc("b"), self._doc("c")]
+        assert svc.merge_documents(docs, "|") == "a|b|c"

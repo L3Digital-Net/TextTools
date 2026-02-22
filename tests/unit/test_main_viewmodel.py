@@ -217,4 +217,75 @@ class TestConvertToUtf8:
         mock_file_svc.save_file.side_effect = PermissionError("read-only")
         with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
             vm.convert_to_utf8("café")
-        assert "Cannot convert" in blocker.args[0]
+
+
+class TestMergeQueue:
+    """Tests for the file merge queue slots."""
+
+    def test_add_current_to_merge(self, vm, mock_file_svc, qtbot):
+        vm.load_file("/tmp/test.txt")
+        with qtbot.waitSignal(vm.merge_list_changed, timeout=1000) as blocker:
+            vm.add_current_to_merge()
+        assert blocker.args[0] == ["test.txt"]
+
+    def test_add_current_no_file_emits_error(self, vm, qtbot):
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.add_current_to_merge()
+        assert "No file loaded" in blocker.args[0]
+
+    def test_add_files_to_merge(self, vm, qtbot):
+        with qtbot.waitSignal(vm.merge_list_changed, timeout=1000) as blocker:
+            vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt"])
+        assert blocker.args[0] == ["a.txt", "b.txt"]
+
+    def test_duplicate_ignored(self, vm, qtbot):
+        vm.add_files_to_merge(["/tmp/a.txt"])
+        names: list[list[str]] = []
+        vm.merge_list_changed.connect(names.append)
+        vm.add_files_to_merge(["/tmp/a.txt"])  # duplicate — should not emit
+        assert names == []
+
+    def test_remove_from_merge(self, vm, qtbot):
+        vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt"])
+        with qtbot.waitSignal(vm.merge_list_changed, timeout=1000) as blocker:
+            vm.remove_from_merge(0)
+        assert blocker.args[0] == ["b.txt"]
+
+    def test_move_merge_item_forward(self, vm, qtbot):
+        vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt", "/tmp/c.txt"])
+        with qtbot.waitSignal(vm.merge_list_changed, timeout=1000) as blocker:
+            vm.move_merge_item(0, 2)  # move a after b
+        assert blocker.args[0] == ["b.txt", "a.txt", "c.txt"]
+
+    def test_move_merge_item_backward(self, vm, qtbot):
+        vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt", "/tmp/c.txt"])
+        with qtbot.waitSignal(vm.merge_list_changed, timeout=1000) as blocker:
+            vm.move_merge_item(2, 0)  # move c before a
+        assert blocker.args[0] == ["c.txt", "a.txt", "b.txt"]
+
+    def test_execute_merge_emits_document_loaded(self, vm, mock_file_svc, mock_text_svc, qtbot):
+        mock_text_svc.merge_documents.return_value = "merged content"
+        vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt"])
+        with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:
+            vm.execute_merge()
+        assert blocker.args[0] == "merged content"
+
+    def test_execute_merge_empty_list_emits_error(self, vm, qtbot):
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.execute_merge()
+        assert "No files in merge list" in blocker.args[0]
+
+    def test_execute_merge_file_read_error(self, vm, mock_file_svc, qtbot):
+        vm.add_files_to_merge(["/tmp/missing.txt"])
+        mock_file_svc.open_file.side_effect = FileNotFoundError("gone")
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.execute_merge()
+        assert "Cannot read" in blocker.args[0]
+
+    def test_set_merge_separator(self, vm, mock_file_svc, mock_text_svc, qtbot):
+        vm.add_files_to_merge(["/tmp/a.txt"])
+        vm.set_merge_separator("---")
+        vm.execute_merge()
+        mock_text_svc.merge_documents.assert_called_once()
+        _, sep = mock_text_svc.merge_documents.call_args[0]
+        assert sep == "---"
