@@ -262,3 +262,75 @@ class TestReplaceAllHandler:
         window._replace_edit.setText("goodbye")
         with qtbot.waitSignal(window._viewmodel.content_updated, timeout=1000):
             window._on_replace_all_clicked()
+
+
+class TestTreeClickHandler:
+    def test_file_click_loads_file(self, window, tmp_path, qtbot):
+        """Clicking a file path sets fileNameEdit and calls load_file — lines 233-234."""
+        f = tmp_path / "click.txt"
+        f.write_text("click content", encoding="utf-8")
+        window._fs_model.filePath = MagicMock(return_value=str(f))
+        window._file_name_edit.setText(str(f))
+        with qtbot.waitSignal(window._viewmodel.document_loaded, timeout=1000):
+            window._on_tree_item_clicked(MagicMock())
+
+    def test_directory_click_is_ignored(self, window, tmp_path):
+        """Clicking a directory does not call load_file — line 232 branch."""
+        window._fs_model.filePath = MagicMock(return_value=str(tmp_path))
+        emitted: list = []
+        window._viewmodel.document_loaded.connect(emitted.append)
+        window._on_tree_item_clicked(MagicMock())
+        assert emitted == []
+
+
+class TestActionOpenHandler:
+    def test_chosen_file_is_loaded(self, window, tmp_path, monkeypatch, qtbot):
+        """QFileDialog returns path → file loaded — lines 304-306."""
+        f = tmp_path / "opened.txt"
+        f.write_text("opened", encoding="utf-8")
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getOpenFileName",
+            lambda *a, **kw: (str(f), ""),
+        )
+        window._file_name_edit.setText(str(f))
+        with qtbot.waitSignal(window._viewmodel.document_loaded, timeout=1000):
+            window._on_action_open()
+        assert window._file_name_edit.text() == str(f)
+
+    def test_cancelled_dialog_is_no_op(self, window, monkeypatch):
+        """QFileDialog returns '' → nothing happens — lines 303-304 branch."""
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getOpenFileName",
+            lambda *a, **kw: ("", ""),
+        )
+        emitted: list = []
+        window._viewmodel.document_loaded.connect(emitted.append)
+        window._on_action_open()
+        assert emitted == []
+
+
+class TestActionAboutHandler:
+    def test_about_dialog_is_shown(self, window, monkeypatch):
+        """actionAbout → QMessageBox.about called — line 310."""
+        calls: list = []
+        monkeypatch.setattr(
+            "src.views.main_window.QMessageBox.about",
+            lambda *a: calls.append(a),
+        )
+        window._on_action_about()
+        assert len(calls) == 1
+        assert "0.2.0" in calls[0][2]
+
+
+class TestErrorHandler:
+    def test_error_signal_shows_critical_dialog(self, window, monkeypatch, qtbot):
+        """error_occurred signal → QMessageBox.critical — line 366."""
+        calls: list = []
+        monkeypatch.setattr(
+            "src.views.main_window.QMessageBox.critical",
+            lambda *a, **kw: calls.append(a),
+        )
+        window._viewmodel.error_occurred.emit("something went wrong")
+        qtbot.wait(10)
+        assert len(calls) == 1
+        assert "something went wrong" in calls[0][2]
