@@ -150,3 +150,47 @@ class TestLoadUiErrors:
         )
         with pytest.raises(RuntimeError, match="QUiLoader failed"):
             MainWindow(MagicMock())
+
+
+class TestSaveHandler:
+    def test_warning_shown_when_filepath_empty(self, window, monkeypatch):
+        """Empty fileNameEdit triggers QMessageBox.warning — lines 240-244."""
+        warnings: list = []
+        monkeypatch.setattr(
+            "src.views.main_window.QMessageBox.warning",
+            lambda *a: warnings.append(a),
+        )
+        window._file_name_edit.setText("")
+        window._on_save_clicked()
+        assert len(warnings) == 1
+
+    def test_save_delegates_to_viewmodel(self, window, qtbot):
+        """Non-empty filepath triggers ViewModel.save_file — line 246."""
+        window._file_name_edit.setText("/tmp/out.txt")
+        window._plain_text_edit.setPlainText("some content")
+        with qtbot.waitSignal(window._viewmodel.file_saved, timeout=1000):
+            window._on_save_clicked()
+
+
+class TestCleanHandler:
+    def test_checking_trim_checkbox_triggers_cleaning(
+        self, window, mock_text_svc, qtbot
+    ):
+        """stateChanged → _on_clean_requested — lines 253-258."""
+        window._viewmodel.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        with qtbot.waitSignal(window._viewmodel.content_updated, timeout=1000):
+            window._trim_cb.setChecked(True)
+
+    def test_clean_options_reflect_checkbox_states(
+        self, window, mock_text_svc, qtbot
+    ):
+        window._viewmodel.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        window._clean_cb.setChecked(False)
+        window._remove_tabs_cb.setChecked(True)
+        window._on_clean_requested()
+        call_args = mock_text_svc.apply_options.call_args
+        opts = call_args[0][1]
+        assert opts.remove_tabs is True
+        assert opts.clean_whitespace is False
