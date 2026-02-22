@@ -105,11 +105,13 @@ class TestOrphanWidgets:
 
 
 class TestMergeTab:
-    def test_merge_tab_has_coming_soon_label(self, window):
-        from PySide6.QtWidgets import QLabel
-        label = window.ui.findChild(QLabel, "mergeComingSoonLabel")
-        assert label is not None
-        assert "coming soon" in label.text().lower()
+    def test_merge_tab_has_expected_widgets(self, window):
+        from PySide6.QtWidgets import QListWidget, QPushButton, QLineEdit
+        assert window.ui.findChild(QListWidget, "mergeFileList") is not None
+        assert window.ui.findChild(QPushButton, "mergeButton") is not None
+        assert window.ui.findChild(QPushButton, "mergeAddCurrentButton") is not None
+        assert window.ui.findChild(QPushButton, "mergeAddFilesButton") is not None
+        assert window.ui.findChild(QLineEdit, "mergeSeparatorEdit") is not None
 
 
 class TestRequireHelper:
@@ -543,3 +545,153 @@ class TestConfigPersistence:
         size = window.ui.size()
         assert size.width() == 700
         assert size.height() == 600
+
+
+class TestMergeWorkflow:
+    """Integration tests for the merge tab — real files, real ViewModel signals."""
+
+    def test_add_current_and_merge(self, window, mock_file_svc, mock_text_svc, tmp_path, qtbot):
+        """Load a file, add it to the merge list, merge it, verify editor content."""
+        from PySide6.QtWidgets import QListWidget
+
+        file1 = tmp_path / "a.txt"
+        file1.write_text("aaa")
+        file2 = tmp_path / "b.txt"
+        file2.write_text("bbb")
+
+        # Configure mocks for two separate load calls
+        docs = [
+            TextDocument(filepath=str(file1), content="aaa", encoding="utf-8"),
+            TextDocument(filepath=str(file2), content="bbb", encoding="utf-8"),
+        ]
+        mock_file_svc.open_file.side_effect = docs
+        mock_text_svc.merge_documents.return_value = "aaa\nbbb"
+
+        # Load first file and add to merge list
+        window._viewmodel.load_file(str(file1))
+        window._viewmodel.add_current_to_merge()
+
+        # Reload mock for second file
+        mock_file_svc.open_file.side_effect = [
+            TextDocument(filepath=str(file2), content="bbb", encoding="utf-8"),
+        ]
+        window._viewmodel.load_file(str(file2))
+        window._viewmodel.add_current_to_merge()
+
+        # Reset side_effect for execute_merge (re-opens both files)
+        mock_file_svc.open_file.side_effect = [
+            TextDocument(filepath=str(file1), content="aaa", encoding="utf-8"),
+            TextDocument(filepath=str(file2), content="bbb", encoding="utf-8"),
+        ]
+
+        with qtbot.waitSignal(window._viewmodel.document_loaded, timeout=1000):
+            window._viewmodel.execute_merge()
+
+        assert window._plain_text_edit.toPlainText() == "aaa\nbbb"
+
+    def test_merge_tab_list_refreshes_on_add(self, window, mock_file_svc, tmp_path, qtbot):
+        """Adding a file to merge list refreshes the QListWidget display."""
+        from PySide6.QtWidgets import QListWidget
+
+        doc = TextDocument(filepath="/tmp/hello.txt", content="hi", encoding="utf-8")
+        mock_file_svc.open_file.return_value = doc
+        window._viewmodel.load_file("/tmp/hello.txt")
+
+        list_widget = window.ui.findChild(QListWidget, "mergeFileList")
+        assert list_widget is not None
+        assert list_widget.count() == 0
+
+        with qtbot.waitSignal(window._viewmodel.merge_list_changed, timeout=1000):
+            window._viewmodel.add_current_to_merge()
+
+        assert list_widget.count() == 1
+        assert list_widget.item(0).text() == "hello.txt"
+
+    def test_merge_empty_list_shows_error(self, window, qtbot):
+        """Clicking Merge with no files emits error_occurred."""
+        with qtbot.waitSignal(window._viewmodel.error_occurred, timeout=1000) as blocker:
+            window._viewmodel.execute_merge()
+        assert "No files in merge list" in blocker.args[0]
+
+
+class TestPreferencesIntegration:
+    """Integration tests for _apply_preferences() and the preferences dialog action."""
+
+    @pytest.fixture(autouse=True)
+    def isolated_settings(self, tmp_path, monkeypatch):
+        """Redirect QSettings in main_window (used by _apply_preferences) to tmp ini.
+
+        Also patches preferences_dialog.QSettings so any dialog construction
+        in the same test body hits the same file.
+        """
+        from PySide6.QtCore import QSettings
+
+        tmp_ini = str(tmp_path / "prefs_integration.ini")
+        factory = lambda *_: QSettings(tmp_ini, QSettings.Format.IniFormat)
+        monkeypatch.setattr("src.views.main_window.QSettings", factory)
+        monkeypatch.setattr("src.views.preferences_dialog.QSettings", factory)
+        self._tmp_ini = tmp_ini
+
+    def test_font_size_applied_to_editor(self, window):
+        """_apply_preferences sets QPlainTextEdit font size from QSettings."""
+        from PySide6.QtCore import QSettings
+        from src.views.preferences_dialog import KEY_FONT_SIZE
+
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_FONT_SIZE, 20)
+        window._apply_preferences()
+        assert window._plain_text_edit.font().pointSize() == 20
+
+    def test_word_wrap_enabled(self, window):
+        """_apply_preferences enables WidgetWidth wrap when KEY_WORD_WRAP is True."""
+        from PySide6.QtCore import QSettings
+        from PySide6.QtWidgets import QPlainTextEdit
+        from src.views.preferences_dialog import KEY_WORD_WRAP
+
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_WORD_WRAP, True)
+        window._apply_preferences()
+        assert (
+            window._plain_text_edit.lineWrapMode()
+            == QPlainTextEdit.LineWrapMode.WidgetWidth
+        )
+
+    def test_word_wrap_disabled_by_default(self, window):
+        """_apply_preferences sets NoWrap when KEY_WORD_WRAP is absent (default False)."""
+        from PySide6.QtWidgets import QPlainTextEdit
+
+        window._apply_preferences()  # no settings written — default False applies
+        assert (
+            window._plain_text_edit.lineWrapMode()
+            == QPlainTextEdit.LineWrapMode.NoWrap
+        )
+
+    def test_dark_theme_changes_palette(self, window, qapp):
+        """_apply_preferences sets a dark Window colour when theme='dark'."""
+        from PySide6.QtCore import QSettings
+        from src.views.preferences_dialog import KEY_THEME
+
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_THEME, "dark")
+        window._apply_preferences()
+        # Dark palette: Window role should be a dark grey (R < 100).
+        window_colour = qapp.palette().color(qapp.palette().ColorRole.Window)
+        assert window_colour.red() < 100
+
+    def test_preferences_persisted_across_sessions(self, mock_file_svc, mock_text_svc):
+        """Font size written to settings is applied when a new MainWindow starts."""
+        from PySide6.QtCore import QSettings
+        from src.viewmodels.main_viewmodel import MainViewModel
+        from src.views.main_window import MainWindow
+        from src.views.preferences_dialog import KEY_FONT_SIZE
+
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_FONT_SIZE, 22)
+        vm = MainViewModel(mock_file_svc, mock_text_svc)
+        new_window = MainWindow(vm)
+        assert new_window._plain_text_edit.font().pointSize() == 22
+
+    def test_open_preferences_dialog(self, window, monkeypatch):
+        """_on_action_preferences constructs and execs a PreferencesDialog."""
+        from unittest.mock import MagicMock
+
+        mock_dlg = MagicMock()
+        monkeypatch.setattr("src.views.main_window.PreferencesDialog", lambda *_: mock_dlg)
+        window._on_action_preferences()
+        mock_dlg.exec.assert_called_once()
