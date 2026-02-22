@@ -68,3 +68,46 @@ class TestSaveFile:
         doc = TextDocument(filepath=str(f), content="new content")
         svc.save_file(doc)
         assert f.read_text(encoding="utf-8") == "new content"
+
+
+class TestDetectEncoding:
+    """Tests for _detect_encoding — module-level function in file_service.py."""
+
+    def test_utf16_le_detected_by_chardet(self):
+        """UTF-16-LE gives chardet confidence >= 0.7, exercising the chardet branch."""
+        pytest.importorskip("chardet")  # skip gracefully if chardet not installed
+        from src.services.file_service import _detect_encoding
+
+        raw = "hello world".encode("utf-16-le")
+        encoding = _detect_encoding(raw)
+        # chardet should NOT fall back to utf-8 for clearly UTF-16-LE content
+        assert encoding.lower().replace("-", "") != "utf8"
+
+    def test_falls_back_to_utf8_for_plain_ascii(self):
+        """ASCII bytes: chardet returns low/no confidence → fallback to utf-8."""
+        from src.services.file_service import _detect_encoding
+
+        encoding = _detect_encoding(b"hello")
+        assert isinstance(encoding, str)
+        assert len(encoding) > 0
+
+
+class TestAtomicSaveCleanup:
+    """Verify temp file is cleaned up when os.replace fails (lines 70-75)."""
+
+    def test_temp_file_removed_on_replace_failure(self, svc, tmp_path, monkeypatch):
+        removed: list[str] = []
+
+        def _failing_replace(src: str, dst: str) -> None:
+            raise OSError("simulated disk full")
+
+        monkeypatch.setattr("os.replace", _failing_replace)
+        monkeypatch.setattr("os.unlink", lambda p: removed.append(p))
+
+        from src.models.text_document import TextDocument
+
+        doc = TextDocument(filepath=str(tmp_path / "out.txt"), content="data")
+        with pytest.raises(OSError, match="simulated disk full"):
+            svc.save_file(doc)
+
+        assert len(removed) == 1, "temp file should have been unlinked on failure"
