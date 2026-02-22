@@ -32,7 +32,7 @@ def create_application() -> MainWindow:
     return MainWindow(viewmodel)
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Application entry point."""
     logger.info("Starting TextTools")
     app = QApplication(sys.argv)
@@ -46,5 +46,5 @@ def main() -> None:
     sys.exit(app.exec())
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
