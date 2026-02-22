@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] — 2026-02-21
+
+### Added
+- Default tab is now Clean (was Find/Replace)
+- Keyboard shortcuts: Ctrl+F (find), Ctrl+H (replace), F3 (find next)
+- Encoding conversion button (F-001): re-saves file as UTF-8
+- Cursor position and character count in status bar
+- Save As (was stubbed)
+- Window geometry and splitter positions persist across sessions (QSettings)
+
+### Fixed
+- Encoding label now shows "utf-8" for ASCII files (ASCII is a subset of UTF-8)
+
+---
+
 ## [0.2.0] - 2026-02-21
 
 ### Added
