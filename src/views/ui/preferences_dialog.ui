@@ -29,13 +29,23 @@
          </widget>
         </item>
         <item>
-         <widget class="QFontComboBox" name="fontFamilyComboBox">
+         <widget class="QComboBox" name="fontFamilyComboBox">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>1</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <item><property name="text"><string>Monospace</string></property></item>
+          <item><property name="text"><string>Noto Sans Mono</string></property></item>
+          <item><property name="text"><string>DejaVu Sans Mono</string></property></item>
+          <item><property name="text"><string>Liberation Mono</string></property></item>
+          <item><property name="text"><string>Courier New</string></property></item>
+          <item><property name="text"><string>Consolas</string></property></item>
+          <item><property name="text"><string>Inconsolata</string></property></item>
+          <item><property name="text"><string>Source Code Pro</string></property></item>
+          <item><property name="text"><string>Fira Code</string></property></item>
+          <item><property name="text"><string>JetBrains Mono</string></property></item>
          </widget>
         </item>
         <item>
