@@ -335,3 +335,12 @@ class TestErrorHandler:
         qtbot.wait(10)
         assert len(calls) == 1
         assert "something went wrong" in calls[0][2]
+
+
+class TestDefaultTab:
+    def test_opens_on_clean_tab(self, window):
+        """Tab widget must default to index 0 (Clean tab), not 2 (Find/Replace)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab is not None
+        assert tab.currentIndex() == 0
