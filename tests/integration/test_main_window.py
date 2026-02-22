@@ -493,3 +493,36 @@ class TestActionSaveAsHandler:
         window._viewmodel.file_saved.connect(emitted.append)
         window._on_action_save_as()
         assert emitted == []
+
+
+class TestConfigPersistence:
+    def test_save_settings_writes_geometry(self, window, qtbot):
+        """_save_settings must write window/geometry to QSettings."""
+        from PySide6.QtCore import QSettings
+        s = QSettings("TextTools", "TextTools")
+        s.remove("window/geometry")
+        window.ui.show()
+        window._save_settings()
+        s2 = QSettings("TextTools", "TextTools")
+        assert s2.value("window/geometry") is not None
+
+    def test_load_settings_does_not_raise_when_empty(self, window):
+        """_load_settings must not raise when no settings have been saved."""
+        from PySide6.QtCore import QSettings
+        QSettings("TextTools", "TextTools").clear()
+        window._load_settings()  # must not raise
+
+    def test_save_and_restore_geometry(self, window, qtbot):
+        """Geometry saved by _save_settings is restored by _load_settings."""
+        from PySide6.QtCore import QSettings
+        window.ui.show()
+        window.ui.resize(700, 600)
+        qtbot.wait(10)
+        window._save_settings()
+        window.ui.resize(300, 300)
+        qtbot.wait(10)
+        window._load_settings()
+        qtbot.wait(10)
+        size = window.ui.size()
+        assert size.width() == 700
+        assert size.height() == 600

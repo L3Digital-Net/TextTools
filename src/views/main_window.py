@@ -16,7 +16,7 @@ window. Embedding one QMainWindow inside another breaks sizing and menubar.
 import os
 from typing import TypeVar, cast
 
-from PySide6.QtCore import QDir, QFile, QModelIndex, Qt
+from PySide6.QtCore import QDir, QFile, QModelIndex, QSettings, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSplitter,
     QTabWidget,
     QTreeView,
 )
@@ -76,6 +77,10 @@ class MainWindow:
         self._load_ui()
         self._setup_file_tree()
         self._connect_signals()
+        self._load_settings()
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._save_settings)
 
     def show(self) -> None:
         """Show the main application window."""
@@ -180,6 +185,13 @@ class MainWindow:
         # Permanent status bar label — lives on the right, never overwritten by showMessage()
         self._cursor_label = QLabel("Ln 1, Col 1 | 0 chars")
         self.ui.statusBar().addPermanentWidget(self._cursor_label)
+
+        self._main_splitter = _require(
+            self.ui.findChild(QSplitter, "mainSplitter"), "mainSplitter"
+        )
+        self._left_splitter = _require(
+            self.ui.findChild(QSplitter, "leftPanelSplitter"), "leftPanelSplitter"
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
@@ -410,6 +422,29 @@ class MainWindow:
         # 190x faster than toPlainText() — avoids a full string allocation per keypress.
         chars = self._plain_text_edit.document().characterCount() - 1
         self._cursor_label.setText(f"Ln {line}, Col {col} | {chars:,} chars")
+
+    def _load_settings(self) -> None:
+        """Restore window geometry and splitter positions from QSettings.
+
+        Silent no-op when no settings exist yet (first launch or cleared).
+        """
+        settings = QSettings("TextTools", "TextTools")
+        if geometry := settings.value("window/geometry"):
+            self.ui.restoreGeometry(geometry)
+        if main_state := settings.value("splitter/main"):
+            self._main_splitter.restoreState(main_state)
+        if left_state := settings.value("splitter/left"):
+            self._left_splitter.restoreState(left_state)
+
+    def _save_settings(self) -> None:
+        """Save window geometry and splitter positions to QSettings.
+
+        Connected to QApplication.aboutToQuit in __init__.
+        """
+        settings = QSettings("TextTools", "TextTools")
+        settings.setValue("window/geometry", self.ui.saveGeometry())
+        settings.setValue("splitter/main", self._main_splitter.saveState())
+        settings.setValue("splitter/left", self._left_splitter.saveState())
 
     # ------------------------------------------ ViewModel signal handlers
 
