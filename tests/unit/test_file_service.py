@@ -74,22 +74,27 @@ class TestDetectEncoding:
     """Tests for _detect_encoding — module-level function in file_service.py."""
 
     def test_utf16_le_detected_by_chardet(self):
-        """UTF-16-LE gives chardet confidence >= 0.7, exercising the chardet branch."""
+        """UTF-16 with BOM gives chardet confidence=1.0, exercising the chardet branch.
+
+        Using encode('utf-16') emits a BOM so chardet reliably returns 'UTF-16'.
+        Raw UTF-16-LE without BOM requires long content for chardet to reach the
+        0.7 confidence threshold, making it fragile for short test strings.
+        """
         pytest.importorskip("chardet")  # skip gracefully if chardet not installed
         from src.services.file_service import _detect_encoding
 
-        raw = "hello world".encode("utf-16-le")
+        # encode('utf-16') prepends a BOM; chardet returns 'UTF-16' with confidence=1.0
+        raw = "hello world".encode("utf-16")
         encoding = _detect_encoding(raw)
-        # chardet should NOT fall back to utf-8 for clearly UTF-16-LE content
-        assert encoding.lower().replace("-", "") != "utf8"
+        # chardet returns 'UTF-16' (with BOM) or 'utf-16le'/'utf-16-le' (without BOM)
+        assert encoding.lower() in ("utf-16", "utf-16le", "utf-16-le")
 
-    def test_falls_back_to_utf8_for_plain_ascii(self):
-        """ASCII bytes: chardet returns low/no confidence → fallback to utf-8."""
+    def test_falls_back_to_utf8_for_undetectable_bytes(self):
+        """Empty bytes: chardet returns None encoding → fallback to utf-8."""
         from src.services.file_service import _detect_encoding
 
-        encoding = _detect_encoding(b"hello")
-        assert isinstance(encoding, str)
-        assert len(encoding) > 0
+        encoding = _detect_encoding(b"")
+        assert encoding == "utf-8"
 
 
 class TestAtomicSaveCleanup:
@@ -101,10 +106,8 @@ class TestAtomicSaveCleanup:
         def _failing_replace(src: str, dst: str) -> None:
             raise OSError("simulated disk full")
 
-        monkeypatch.setattr("os.replace", _failing_replace)
-        monkeypatch.setattr("os.unlink", lambda p: removed.append(p))
-
-        from src.models.text_document import TextDocument
+        monkeypatch.setattr("src.services.file_service.os.replace", _failing_replace)
+        monkeypatch.setattr("src.services.file_service.os.unlink", lambda p: removed.append(p))
 
         doc = TextDocument(filepath=str(tmp_path / "out.txt"), content="data")
         with pytest.raises(OSError, match="simulated disk full"):
