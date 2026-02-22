@@ -194,3 +194,71 @@ class TestCleanHandler:
         opts = call_args[0][1]
         assert opts.remove_tabs is True
         assert opts.clean_whitespace is False
+
+
+class TestFindHandler:
+    def test_empty_term_is_no_op(self, window):
+        """Empty findLineEdit → early return at line 264."""
+        window._find_edit.setText("")
+        window._on_find_clicked()  # should not raise or select anything
+        assert not window._plain_text_edit.textCursor().hasSelection()
+
+    def test_finds_existing_text(self, window, qtbot):
+        """find() succeeds — line 265 (found=True branch)."""
+        window._viewmodel.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        window._plain_text_edit.setPlainText("hello world")
+        window._find_edit.setText("hello")
+        window._on_find_clicked()
+        assert window._plain_text_edit.textCursor().hasSelection()
+
+    def test_wraps_when_not_found_from_end(self, window, qtbot):
+        """find() returns False → cursor wraps to start — lines 267-271."""
+        window._plain_text_edit.setPlainText("hello")
+        # Move cursor to end so the first find('hello') misses
+        cursor = window._plain_text_edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        window._plain_text_edit.setTextCursor(cursor)
+        window._find_edit.setText("hello")
+        window._on_find_clicked()  # wraps and finds from start
+        assert window._plain_text_edit.textCursor().hasSelection()
+
+
+class TestReplaceHandler:
+    def test_empty_find_term_is_no_op(self, window):
+        """Empty findLineEdit → early return at line 278."""
+        window._find_edit.setText("")
+        window._on_replace_clicked()  # should not raise
+
+    def test_replace_with_no_selection_calls_find(self, window, qtbot):
+        """No selection → skips replacement, falls through to find — lines 279-282."""
+        window._plain_text_edit.setPlainText("hello world")
+        window._find_edit.setText("hello")
+        window._replace_edit.setText("goodbye")
+        window._on_replace_clicked()
+        # find() advances cursor to 'hello' after replace falls through
+        assert window._plain_text_edit.textCursor().hasSelection()
+
+    def test_replace_matching_selection_inserts_replacement(self, window, qtbot):
+        """Matching selection → text replaced — line 281."""
+        window._plain_text_edit.setPlainText("hello world")
+        window._find_edit.setText("hello")
+        window._replace_edit.setText("goodbye")
+        # Manually select 'hello'
+        cursor = window._plain_text_edit.textCursor()
+        cursor.setPosition(0)
+        cursor.setPosition(5, cursor.MoveMode.KeepAnchor)
+        window._plain_text_edit.setTextCursor(cursor)
+        window._on_replace_clicked()
+        assert "goodbye" in window._plain_text_edit.toPlainText()
+
+
+class TestReplaceAllHandler:
+    def test_replace_all_emits_content_updated(self, window, qtbot):
+        """_on_replace_all_clicked delegates to ViewModel — line 289."""
+        window._viewmodel.load_file("/tmp/test.txt")
+        qtbot.wait(10)
+        window._find_edit.setText("hello")
+        window._replace_edit.setText("goodbye")
+        with qtbot.waitSignal(window._viewmodel.content_updated, timeout=1000):
+            window._on_replace_all_clicked()
