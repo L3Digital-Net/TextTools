@@ -97,6 +97,25 @@ class TestDetectEncoding:
         assert encoding == "utf-8"
 
 
+class TestDetectEncodingNormalization:
+    def test_ascii_content_returns_utf8(self):
+        """Pure-ASCII bytes must be labelled utf-8, not ascii.
+
+        chardet correctly identifies ASCII bytes as 'ascii'. We normalize to
+        'utf-8' because ASCII is a proper subset of UTF-8 and saving as utf-8
+        is always safe for ASCII content.
+        """
+        from src.services.file_service import _detect_encoding
+        raw = b"hello world"  # pure ASCII
+        assert _detect_encoding(raw) == "utf-8"
+
+    def test_non_ascii_utf8_content_returns_utf8(self):
+        """Non-ASCII UTF-8 bytes (é, ñ) must return utf-8."""
+        from src.services.file_service import _detect_encoding
+        raw = "café résumé naïve".encode("utf-8")
+        assert _detect_encoding(raw) == "utf-8"
+
+
 class TestAtomicSaveCleanup:
     """Verify temp file is cleaned up when os.replace fails (lines 70-75)."""
 

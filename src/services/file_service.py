@@ -80,13 +80,17 @@ def _detect_encoding(raw: bytes) -> str:
 
     Module-level so it can be tested without instantiating FileService.
     Falls back to utf-8 if chardet is unavailable or confidence is too low.
+    Normalizes 'ascii' to 'utf-8' because ASCII is a proper subset of UTF-8
+    and saving as utf-8 is always safe for ASCII content.
     """
     try:
         import chardet  # optional dependency
 
         result = chardet.detect(raw)
         if result["encoding"] and result["confidence"] >= _ENCODING_MIN_CONFIDENCE:
-            return result["encoding"]
+            detected = result["encoding"].lower()
+            # ASCII is a valid subset of UTF-8; normalize to avoid confusing the UI.
+            return "utf-8" if detected == "ascii" else result["encoding"]
     except ImportError:
         logger.debug("chardet not installed; defaulting to utf-8")
     return _ENCODING_FALLBACK
