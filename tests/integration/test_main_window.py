@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.utils.constants import APP_VERSION
+
 from src.models.cleaning_options import CleaningOptions
 from src.models.text_document import TextDocument
 from src.viewmodels.main_viewmodel import MainViewModel
@@ -270,9 +272,9 @@ class TestTreeClickHandler:
         f = tmp_path / "click.txt"
         f.write_text("click content", encoding="utf-8")
         window._fs_model.filePath = MagicMock(return_value=str(f))
-        window._file_name_edit.setText(str(f))
         with qtbot.waitSignal(window._viewmodel.document_loaded, timeout=1000):
             window._on_tree_item_clicked(MagicMock())
+        assert window._file_name_edit.text() == str(f)  # confirms line 233 ran
 
     def test_directory_click_is_ignored(self, window, tmp_path):
         """Clicking a directory does not call load_file — line 232 branch."""
@@ -292,10 +294,9 @@ class TestActionOpenHandler:
             "src.views.main_window.QFileDialog.getOpenFileName",
             lambda *a, **kw: (str(f), ""),
         )
-        window._file_name_edit.setText(str(f))
         with qtbot.waitSignal(window._viewmodel.document_loaded, timeout=1000):
             window._on_action_open()
-        assert window._file_name_edit.text() == str(f)
+        assert window._file_name_edit.text() == str(f)  # confirms line 305 ran
 
     def test_cancelled_dialog_is_no_op(self, window, monkeypatch):
         """QFileDialog returns '' → nothing happens — lines 303-304 branch."""
@@ -319,7 +320,7 @@ class TestActionAboutHandler:
         )
         window._on_action_about()
         assert len(calls) == 1
-        assert "0.2.0" in calls[0][2]
+        assert APP_VERSION in calls[0][2]
 
 
 class TestErrorHandler:
