@@ -163,3 +163,38 @@ class MainViewModel(QObject):
         self.content_updated.emit(new_content)
         noun = "occurrence" if count == 1 else "occurrences"
         self.status_changed.emit(f"Replaced {count} {noun}")
+
+    @Slot(str)
+    def convert_to_utf8(self, current_text: str) -> None:
+        """Re-save the current document in UTF-8 encoding.
+
+        Args:
+            current_text: Live editor text from the View. Used as the content
+                to save (preserves unsaved edits).
+
+        No-op when no document is loaded or the file is already UTF-8.
+        Encoding comparison normalises dashes so 'utf-8' and 'utf8' both match.
+        """
+        if self._current_document is None:
+            self.status_changed.emit("No document loaded")
+            return
+        # Normalise: strip dashes and lowercase so 'UTF-8', 'utf-8', 'utf8' all match.
+        current_encoding = self._current_document.encoding.lower().replace("-", "")
+        if current_encoding in ("utf8",):
+            self.status_changed.emit("File is already UTF-8")
+            return
+        doc = TextDocument(
+            filepath=self._current_document.filepath,
+            content=current_text,
+            encoding="utf-8",
+        )
+        try:
+            self._file_service.save_file(doc)
+            self._current_document = doc
+            self.encoding_detected.emit("utf-8")
+            self.file_saved.emit(doc.filepath)
+            self.status_changed.emit(f"Converted to UTF-8: {doc.filepath}")
+        except (ValueError, PermissionError, OSError) as e:
+            msg = f"Cannot convert file: {e}"
+            logger.error(msg)
+            self.error_occurred.emit(msg)

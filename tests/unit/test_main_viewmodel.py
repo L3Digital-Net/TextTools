@@ -148,3 +148,65 @@ class TestReplaceAll:
         with qtbot.waitSignal(vm.content_updated, timeout=1000) as blocker:
             vm.replace_all("hello", "goodbye", current_text="hello hello")
         assert blocker.args[0] == "goodbye goodbye"
+
+
+class TestConvertToUtf8:
+    def test_saves_file_with_utf8_encoding(self, vm, mock_file_svc, qtbot):
+        """convert_to_utf8 must call save_file with encoding='utf-8'."""
+        from src.models.text_document import TextDocument
+        mock_file_svc.open_file.return_value = TextDocument(
+            filepath="/tmp/latin.txt", content="caf\u00e9", encoding="ISO-8859-1"
+        )
+        vm.load_file("/tmp/latin.txt")
+        vm.convert_to_utf8("café")
+        saved_doc = mock_file_svc.save_file.call_args[0][0]
+        assert saved_doc.encoding == "utf-8"
+        assert saved_doc.content == "café"
+
+    def test_emits_encoding_detected_utf8(self, vm, mock_file_svc, qtbot):
+        """convert_to_utf8 must emit encoding_detected('utf-8')."""
+        from src.models.text_document import TextDocument
+        mock_file_svc.open_file.return_value = TextDocument(
+            filepath="/tmp/latin.txt", content="caf\u00e9", encoding="ISO-8859-1"
+        )
+        vm.load_file("/tmp/latin.txt")
+        with qtbot.waitSignal(vm.encoding_detected, timeout=1000) as blocker:
+            vm.convert_to_utf8("café")
+        assert blocker.args[0] == "utf-8"
+
+    def test_emits_file_saved(self, vm, mock_file_svc, qtbot):
+        """convert_to_utf8 must emit file_saved after a successful save."""
+        from src.models.text_document import TextDocument
+        mock_file_svc.open_file.return_value = TextDocument(
+            filepath="/tmp/latin.txt", content="caf\u00e9", encoding="ISO-8859-1"
+        )
+        vm.load_file("/tmp/latin.txt")
+        with qtbot.waitSignal(vm.file_saved, timeout=1000) as blocker:
+            vm.convert_to_utf8("café")
+        assert blocker.args[0] == "/tmp/latin.txt"
+
+    def test_no_op_when_already_utf8(self, vm, mock_file_svc, qtbot):
+        """convert_to_utf8 must not save when encoding is already utf-8."""
+        from src.models.text_document import TextDocument
+        mock_file_svc.open_file.return_value = TextDocument(
+            filepath="/tmp/utf8.txt", content="hello", encoding="utf-8"
+        )
+        vm.load_file("/tmp/utf8.txt")
+        vm.convert_to_utf8("hello")
+        mock_file_svc.save_file.assert_not_called()
+
+    def test_no_op_when_no_document(self, vm, qtbot):
+        """convert_to_utf8 with no loaded document must be silent."""
+        vm.convert_to_utf8("some text")  # must not raise
+
+    def test_emits_error_on_save_failure(self, vm, mock_file_svc, qtbot):
+        """convert_to_utf8 must emit error_occurred when save_file raises."""
+        from src.models.text_document import TextDocument
+        mock_file_svc.open_file.return_value = TextDocument(
+            filepath="/tmp/latin.txt", content="caf\u00e9", encoding="ISO-8859-1"
+        )
+        vm.load_file("/tmp/latin.txt")
+        mock_file_svc.save_file.side_effect = PermissionError("read-only")
+        with qtbot.waitSignal(vm.error_occurred, timeout=1000) as blocker:
+            vm.convert_to_utf8("café")
+        assert "Cannot convert" in blocker.args[0]

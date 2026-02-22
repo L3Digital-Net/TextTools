@@ -405,3 +405,13 @@ class TestKeyboardShortcuts:
         assert window._plain_text_edit.textCursor().selectedText() == "hello"
         pos_after_second = window._plain_text_edit.textCursor().position()
         assert pos_after_second > pos_after_first
+
+
+class TestConvertEncodingHandler:
+    def test_convert_button_calls_viewmodel(self, window, qtbot):
+        """Clicking the Convert button must call viewmodel.convert_to_utf8."""
+        from unittest.mock import patch
+        window._plain_text_edit.setPlainText("hello")
+        with patch.object(window._viewmodel, "convert_to_utf8") as mock_convert:
+            window._convert_button.click()
+        mock_convert.assert_called_once_with("hello")

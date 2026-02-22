@@ -208,9 +208,9 @@ class MainWindow:
         self._replace_button.clicked.connect(self._on_replace_clicked)
         self._replace_all_button.clicked.connect(self._on_replace_all_clicked)
 
-        # Encoding convert is stubbed for v1
+        # Encoding conversion: pass live editor text so unsaved edits are preserved
         self._convert_button.clicked.connect(
-            lambda: self.ui.statusBar().showMessage("Encoding conversion — coming soon")
+            lambda: self._viewmodel.convert_to_utf8(self._plain_text_edit.toPlainText())
         )
 
         # Menu actions
