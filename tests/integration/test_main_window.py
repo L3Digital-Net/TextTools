@@ -439,4 +439,17 @@ class TestStatusBarCursorPosition:
         """The cursor label must include the document character count."""
         window._plain_text_edit.setPlainText("hello")
         qtbot.wait(10)
-        assert "5" in window._cursor_label.text()
+        assert "5 chars" in window._cursor_label.text()
+
+    def test_char_count_updates_on_delete_without_cursor_move(self, window, qtbot):
+        """Char count must update even when content changes without cursor moving."""
+        window._plain_text_edit.setPlainText("hello world")
+        cursor = window._plain_text_edit.textCursor()
+        cursor.setPosition(5)
+        window._plain_text_edit.setTextCursor(cursor)
+        # deleteChar removes the character after the cursor — cursor position unchanged
+        for _ in range(3):
+            cursor = window._plain_text_edit.textCursor()
+            cursor.deleteChar()
+        qtbot.wait(10)
+        assert "8 chars" in window._cursor_label.text()
