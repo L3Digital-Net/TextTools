@@ -16,8 +16,8 @@ window. Embedding one QMainWindow inside another breaks sizing and menubar.
 import os
 from typing import TypeVar, cast
 
-from PySide6.QtCore import QDir, QFile, QModelIndex
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QDir, QFile, QModelIndex, Qt
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QTabWidget,
     QTreeView,
 )
 
@@ -161,6 +162,20 @@ class MainWindow:
         self._action_preferences = _require(
             self.ui.findChild(QAction, "actionPreferences"), "actionPreferences"
         )
+        # Tab widget — needed by focus-navigation shortcuts to reveal Find/Replace tab.
+        self._tab_widget = _require(
+            self.ui.findChild(QTabWidget, "tabWidget"), "tabWidget"
+        )
+        # Find/Replace is the last tab; cache its index so shortcuts stay correct
+        # if tabs are reordered. Falls back to -1 (no-op) if tab is not found.
+        self._find_replace_tab_index = next(
+            (
+                i
+                for i in range(self._tab_widget.count())
+                if self._tab_widget.tabText(i).lower().startswith("find")
+            ),
+            -1,
+        )
 
     def _setup_file_tree(self) -> None:
         """Configure QFileSystemModel rooted at the user's home directory."""
@@ -224,7 +239,36 @@ class MainWindow:
             lambda _: self._update_title()
         )
 
+        # Keyboard shortcuts not present in the .ui file.
+        # (Ctrl+S/O/Q/Shift+S are already wired via QAction shortcuts in main_window.ui.)
+        # ApplicationShortcut context: fires even when a child widget holds focus,
+        # rather than requiring the window itself to be active. Necessary for focus
+        # navigation shortcuts that must work regardless of which widget is focused.
+        ctrl_f = QShortcut(QKeySequence("Ctrl+F"), self.ui)
+        ctrl_f.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        ctrl_f.activated.connect(self._focus_find_edit)
+
+        ctrl_h = QShortcut(QKeySequence("Ctrl+H"), self.ui)
+        ctrl_h.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        ctrl_h.activated.connect(self._focus_replace_edit)
+
+        f3 = QShortcut(QKeySequence("F3"), self.ui)
+        f3.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        f3.activated.connect(self._on_find_clicked)
+
     # ---------------------------------------------------------- user actions
+
+    def _focus_find_edit(self) -> None:
+        """Switch to Find/Replace tab and focus the find field (Ctrl+F target)."""
+        if self._find_replace_tab_index >= 0:
+            self._tab_widget.setCurrentIndex(self._find_replace_tab_index)
+        self._find_edit.setFocus()
+
+    def _focus_replace_edit(self) -> None:
+        """Switch to Find/Replace tab and focus the replace field (Ctrl+H target)."""
+        if self._find_replace_tab_index >= 0:
+            self._tab_widget.setCurrentIndex(self._find_replace_tab_index)
+        self._replace_edit.setFocus()
 
     def _on_tree_item_clicked(self, index: QModelIndex) -> None:
         """Load file on tree click; ignore directory clicks."""

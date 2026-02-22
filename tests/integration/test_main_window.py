@@ -344,3 +344,64 @@ class TestDefaultTab:
         tab = window.ui.findChild(QTabWidget, "tabWidget")
         assert tab is not None
         assert tab.currentIndex() == 0
+
+
+class TestKeyboardShortcuts:
+    """Verify QShortcut wiring by activating each shortcut's signal directly.
+
+    qtbot.keyClick sends QKeyEvent, which does not trigger QShortcut (those
+    listen for QShortcutEvent dispatched by Qt's shortcut system). Emitting
+    activated directly tests the actual signal-to-slot connection without
+    depending on OS-level key event routing.
+
+    hasFocus() is unreliable in headless tests because it requires the window
+    to hold true OS-level focus. Instead: for Ctrl+F and Ctrl+H, the observable
+    side effect is the tab switching to Find/Replace — that is what we assert.
+    For F3, the cursor position advancing to the second match is the assertion.
+    """
+
+    def _shortcut_for(self, window, key_string: str):
+        """Return the QShortcut whose key matches key_string, or raise."""
+        from PySide6.QtGui import QKeySequence, QShortcut
+        target = QKeySequence(key_string)
+        shortcuts = window.ui.findChildren(QShortcut)
+        for sc in shortcuts:
+            if sc.key() == target:
+                return sc
+        raise AssertionError(f"No QShortcut with key '{key_string}' found on window.ui")
+
+    def test_ctrl_f_switches_to_find_replace_tab(self, window, qtbot):
+        """Ctrl+F switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
+        sc = self._shortcut_for(window, "Ctrl+F")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert tab.currentIndex() == window._find_replace_tab_index
+
+    def test_ctrl_h_switches_to_find_replace_tab(self, window, qtbot):
+        """Ctrl+H switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
+        from PySide6.QtWidgets import QTabWidget
+        tab = window.ui.findChild(QTabWidget, "tabWidget")
+        assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
+        sc = self._shortcut_for(window, "Ctrl+H")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert tab.currentIndex() == window._find_replace_tab_index
+
+    def test_f3_triggers_find_next(self, window, qtbot):
+        """F3 finds the next occurrence of the current search term."""
+        window._plain_text_edit.setPlainText("hello world hello")
+        window._find_edit.setText("hello")
+        # First find via direct call establishes an initial selection
+        window._on_find_clicked()
+        assert window._plain_text_edit.textCursor().selectedText() == "hello"
+        pos_after_first = window._plain_text_edit.textCursor().position()
+        # F3 shortcut should advance to next occurrence
+        sc = self._shortcut_for(window, "F3")
+        sc.activated.emit()
+        qtbot.wait(10)
+        assert window._plain_text_edit.textCursor().selectedText() == "hello"
+        pos_after_second = window._plain_text_edit.textCursor().position()
+        assert pos_after_second > pos_after_first
