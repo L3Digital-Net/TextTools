@@ -212,7 +212,7 @@ class TestFindHandler:
         window._on_find_clicked()
         assert window._plain_text_edit.textCursor().hasSelection()
 
-    def test_wraps_when_not_found_from_end(self, window, qtbot):
+    def test_wraps_when_not_found_from_end(self, window):
         """find() returns False → cursor wraps to start — lines 267-271."""
         window._plain_text_edit.setPlainText("hello")
         # Move cursor to end so the first find('hello') misses
@@ -230,7 +230,7 @@ class TestReplaceHandler:
         window._find_edit.setText("")
         window._on_replace_clicked()  # should not raise
 
-    def test_replace_with_no_selection_calls_find(self, window, qtbot):
+    def test_replace_with_no_selection_calls_find(self, window):
         """No selection → skips replacement, falls through to find — lines 279-282."""
         window._plain_text_edit.setPlainText("hello world")
         window._find_edit.setText("hello")
@@ -239,7 +239,7 @@ class TestReplaceHandler:
         # find() advances cursor to 'hello' after replace falls through
         assert window._plain_text_edit.textCursor().hasSelection()
 
-    def test_replace_matching_selection_inserts_replacement(self, window, qtbot):
+    def test_replace_matching_selection_inserts_replacement(self, window):
         """Matching selection → text replaced — line 281."""
         window._plain_text_edit.setPlainText("hello world")
         window._find_edit.setText("hello")
