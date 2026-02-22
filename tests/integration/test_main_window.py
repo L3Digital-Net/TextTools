@@ -14,10 +14,17 @@ from src.views.main_window import MainWindow
 
 @pytest.fixture
 def mock_file_svc():
+    from src.services.file_service import FileService
+
     svc = MagicMock()
     svc.open_file.return_value = TextDocument(
         filepath="/tmp/test.txt", content="hello world", encoding="utf-8"
     )
+    # Delegate save_file to the real FileService so tests that write files to
+    # tmp_path can verify disk contents. Tests that only check signals are
+    # unaffected because they don't inspect file system state.
+    _real_svc = FileService()
+    svc.save_file.side_effect = _real_svc.save_file
     return svc
 
 
@@ -453,3 +460,29 @@ class TestStatusBarCursorPosition:
             cursor.deleteChar()
         qtbot.wait(10)
         assert "8 chars" in window._cursor_label.text()
+
+
+class TestActionSaveAsHandler:
+    def test_chosen_path_is_saved(self, window, tmp_path, monkeypatch, qtbot):
+        """getSaveFileName returns path → file saved to that path."""
+        out = tmp_path / "renamed.txt"
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getSaveFileName",
+            lambda *a, **kw: (str(out), ""),
+        )
+        window._plain_text_edit.setPlainText("save-as content")
+        with qtbot.waitSignal(window._viewmodel.file_saved, timeout=2000):
+            window._on_action_save_as()
+        assert out.read_text(encoding="utf-8") == "save-as content"
+        assert window._file_name_edit.text() == str(out)
+
+    def test_cancelled_dialog_is_no_op(self, window, monkeypatch):
+        """getSaveFileName returns '' → nothing saved."""
+        monkeypatch.setattr(
+            "src.views.main_window.QFileDialog.getSaveFileName",
+            lambda *a, **kw: ("", ""),
+        )
+        emitted: list = []
+        window._viewmodel.file_saved.connect(emitted.append)
+        window._on_action_save_as()
+        assert emitted == []

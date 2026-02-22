@@ -221,9 +221,7 @@ class MainWindow:
         self._action_quit.triggered.connect(QApplication.quit)
         self._action_save.triggered.connect(self._on_save_clicked)
         self._action_open.triggered.connect(self._on_action_open)
-        self._action_save_as.triggered.connect(
-            lambda: self.ui.statusBar().showMessage("Save As — coming soon")
-        )
+        self._action_save_as.triggered.connect(self._on_action_save_as)
         self._action_about.triggered.connect(self._on_action_about)
         self._action_preferences.triggered.connect(
             lambda: self.ui.statusBar().showMessage("Preferences — coming soon")
@@ -358,6 +356,20 @@ class MainWindow:
         if path:
             self._file_name_edit.setText(path)
             self._viewmodel.load_file(path)
+
+    def _on_action_save_as(self) -> None:
+        """Open a Save As dialog; save to the chosen path if confirmed."""
+        _glob = " ".join(TEXT_FILE_EXTENSIONS)
+        initial = self._file_name_edit.text() or QDir.homePath()
+        path, _ = QFileDialog.getSaveFileName(
+            self.ui,
+            "Save As",
+            initial,
+            f"Text Files ({_glob});;All Files (*)",
+        )
+        if path:
+            self._file_name_edit.setText(path)
+            self._on_save_clicked()
 
     def _on_action_about(self) -> None:
         """Show an About dialog."""
