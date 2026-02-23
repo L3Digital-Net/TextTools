@@ -101,756 +101,745 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QSplitter" name="leftPanelSplitter">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <!-- leftContentLayout replaces the vertical QSplitter — tabWidget
+                 (Maximum) takes its natural height, fileTreeView (Expanding)
+                 fills all remaining space automatically. No user resizing. -->
+            <layout class="QVBoxLayout" name="leftContentLayout">
+             <property name="spacing">
+              <number>0</number>
              </property>
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
+             <property name="leftMargin">
+              <number>0</number>
              </property>
-             <property name="handleWidth">
-              <number>1</number>
+             <property name="topMargin">
+              <number>0</number>
              </property>
-             <property name="childrenCollapsible">
-              <bool>true</bool>
+             <property name="rightMargin">
+              <number>0</number>
              </property>
-             <widget class="QWidget" name="verticalLayoutWidget_2">
-              <layout class="QHBoxLayout" name="tabLayout" stretch="0">
-               <property name="spacing">
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QTabWidget" name="tabWidget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="tabShape">
+                <enum>QTabWidget::TabShape::Rounded</enum>
+               </property>
+               <property name="currentIndex">
                 <number>0</number>
                </property>
-               <item alignment="Qt::AlignmentFlag::AlignTop">
-                <widget class="QTabWidget" name="tabWidget">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="autoFillBackground">
-                  <bool>false</bool>
-                 </property>
-                 <property name="tabShape">
-                  <enum>QTabWidget::TabShape::Rounded</enum>
-                 </property>
-                 <property name="currentIndex">
+               <property name="documentMode">
+                <bool>false</bool>
+               </property>
+               <widget class="QWidget" name="cleanTab">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <attribute name="title">
+                 <string>Clean</string>
+                </attribute>
+                <layout class="QHBoxLayout" name="cleanTabLayout">
+                 <property name="spacing">
                   <number>0</number>
                  </property>
-                 <property name="documentMode">
-                  <bool>false</bool>
+                 <property name="sizeConstraint">
+                  <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
                  </property>
-                 <widget class="QWidget" name="cleanTab">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <attribute name="title">
-                   <string>Clean</string>
-                  </attribute>
-                  <layout class="QHBoxLayout" name="cleanTabLayout">
-                   <property name="spacing">
-                    <number>0</number>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item alignment="Qt::AlignmentFlag::AlignTop">
+                  <widget class="QScrollArea" name="cleanScrollArea">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
                    </property>
-                   <property name="sizeConstraint">
-                    <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+                   <property name="frameShape">
+                    <enum>QFrame::Shape::NoFrame</enum>
                    </property>
-                   <property name="leftMargin">
-                    <number>0</number>
+                   <property name="widgetResizable">
+                    <bool>true</bool>
                    </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item alignment="Qt::AlignmentFlag::AlignTop">
-                    <widget class="QScrollArea" name="cleanScrollArea">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
+                   <widget class="QWidget" name="cleanScrollContents">
+                    <property name="geometry">
+                     <rect>
+                      <x>0</x>
+                      <y>0</y>
+                      <width>591</width>
+                      <height>266</height>
+                     </rect>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <layout class="QHBoxLayout" name="cleanScrollContentsLayout">
+                     <property name="spacing">
+                      <number>0</number>
                      </property>
-                     <property name="frameShape">
-                      <enum>QFrame::Shape::NoFrame</enum>
+                     <property name="leftMargin">
+                      <number>0</number>
                      </property>
-                     <property name="widgetResizable">
-                      <bool>true</bool>
+                     <property name="topMargin">
+                      <number>0</number>
                      </property>
-                     <widget class="QWidget" name="cleanScrollContents">
-                      <property name="geometry">
-                       <rect>
-                        <x>0</x>
-                        <y>0</y>
-                        <width>591</width>
-                        <height>266</height>
-                       </rect>
-                      </property>
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <layout class="QHBoxLayout" name="cleanScrollContentsLayout">
-                       <property name="spacing">
-                        <number>0</number>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item>
+                      <widget class="QWidget" name="cleanScrollContentsContainer" native="true">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
                        </property>
+                       <layout class="QVBoxLayout" name="cleanScrollContentsContainerLayout">
+                        <property name="spacing">
+                         <number>0</number>
+                        </property>
+                        <property name="leftMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="topMargin">
+                         <number>12</number>
+                        </property>
+                        <property name="rightMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="bottomMargin">
+                         <number>0</number>
+                        </property>
+                        <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                         <widget class="QLabel" name="encodingConvertHeaderLabel">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="font">
+                           <font>
+                            <bold>true</bold>
+                           </font>
+                          </property>
+                          <property name="text">
+                           <string>Convert Encoding to UTF-8</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QWidget" name="convertEncodingContainer" native="true">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <layout class="QHBoxLayout" name="convertEncodingContainerLayout">
+                           <property name="leftMargin">
+                            <number>12</number>
+                           </property>
+                           <property name="rightMargin">
+                            <number>12</number>
+                           </property>
+                           <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                            <widget class="QLabel" name="currentFormatLabel">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="text">
+                              <string>Current format:</string>
+                             </property>
+                             <property name="textFormat">
+                              <enum>Qt::TextFormat::PlainText</enum>
+                             </property>
+                            </widget>
+                           </item>
+                           <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                            <widget class="QLabel" name="getEncodingFormatLabel">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="text">
+                              <string>[GET ENCODING]</string>
+                             </property>
+                            </widget>
+                           </item>
+                           <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                            <widget class="QPushButton" name="convertEncodingButton">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="text">
+                              <string>Convert</string>
+                             </property>
+                            </widget>
+                           </item>
+                          </layout>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="Line" name="line">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="orientation">
+                           <enum>Qt::Orientation::Horizontal</enum>
+                          </property>
+                         </widget>
+                        </item>
+                        <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                         <widget class="QLabel" name="formattingOptionsHeaderLabel">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="font">
+                           <font>
+                            <bold>true</bold>
+                           </font>
+                          </property>
+                          <property name="text">
+                           <string>Formatting Options</string>
+                          </property>
+                          <property name="margin">
+                           <number>6</number>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="QWidget" name="formatOptionsContainer" native="true">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <layout class="QGridLayout" name="formatOptionsContainerLayout">
+                           <property name="leftMargin">
+                            <number>12</number>
+                           </property>
+                           <property name="topMargin">
+                            <number>6</number>
+                           </property>
+                           <property name="rightMargin">
+                            <number>0</number>
+                           </property>
+                           <property name="bottomMargin">
+                            <number>12</number>
+                           </property>
+                           <property name="horizontalSpacing">
+                            <number>0</number>
+                           </property>
+                           <property name="verticalSpacing">
+                            <number>6</number>
+                           </property>
+                           <item row="2" column="0">
+                            <widget class="QCheckBox" name="removeTabsCheckBox">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="toolTip">
+                              <string>Remove tabs and spaces at the beginning of paragraphs</string>
+                             </property>
+                             <property name="text">
+                              <string>Remove tabs</string>
+                             </property>
+                            </widget>
+                           </item>
+                           <item row="0" column="0">
+                            <widget class="QCheckBox" name="trimWhiteSpaceCheckBox">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="toolTip">
+                              <string>Remove extra linebreaks at beginning and end of document. Remove spaces and tabs at the beginning and ends of paragraphs.</string>
+                             </property>
+                             <property name="layoutDirection">
+                              <enum>Qt::LayoutDirection::LeftToRight</enum>
+                             </property>
+                             <property name="text">
+                              <string>Trim whitespace</string>
+                             </property>
+                            </widget>
+                           </item>
+                           <item row="1" column="0">
+                            <widget class="QCheckBox" name="cleanWhiteSpaceCheckBox">
+                             <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                               <horstretch>0</horstretch>
+                               <verstretch>0</verstretch>
+                              </sizepolicy>
+                             </property>
+                             <property name="toolTip">
+                              <string>Removes extra whitespace between words, i.e. convert two spaces to one space</string>
+                             </property>
+                             <property name="text">
+                              <string>Clean whitespace</string>
+                             </property>
+                            </widget>
+                           </item>
+                          </layout>
+                         </widget>
+                        </item>
+                        <item>
+                         <widget class="Line" name="line_2">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="orientation">
+                           <enum>Qt::Orientation::Horizontal</enum>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+               <widget class="QWidget" name="mergeTab">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <attribute name="title">
+                 <string>Merge</string>
+                </attribute>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QScrollArea" name="mergeScrollArea">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="frameShape">
+                    <enum>QFrame::Shape::NoFrame</enum>
+                   </property>
+                   <property name="widgetResizable">
+                    <bool>true</bool>
+                   </property>
+                   <widget class="QWidget" name="mergeScrollContents">
+                    <property name="geometry">
+                     <rect>
+                      <x>0</x>
+                      <y>0</y>
+                      <width>591</width>
+                      <height>315</height>
+                     </rect>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_6">
+                     <property name="spacing">
+                      <number>0</number>
+                     </property>
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item>
+                      <layout class="QVBoxLayout" name="mergeMainLayout">
+                       <property name="spacing"><number>6</number></property>
+                       <property name="leftMargin"><number>8</number></property>
+                       <property name="topMargin"><number>8</number></property>
+                       <property name="rightMargin"><number>8</number></property>
+                       <property name="bottomMargin"><number>8</number></property>
+                       <item>
+                        <widget class="QLabel" name="mergeFilesLabel">
+                         <property name="text"><string>Files to Merge:</string></property>
+                        </widget>
+                       </item>
+                       <item>
+                        <layout class="QHBoxLayout" name="mergeListLayout">
+                         <item>
+                          <widget class="QListWidget" name="mergeFileList"/>
+                         </item>
+                         <item>
+                          <layout class="QVBoxLayout" name="mergeSideButtonLayout">
+                           <item>
+                            <widget class="QPushButton" name="mergeMoveUpButton">
+                             <property name="text"><string>↑</string></property>
+                            </widget>
+                           </item>
+                           <item>
+                            <widget class="QPushButton" name="mergeMoveDownButton">
+                             <property name="text"><string>↓</string></property>
+                            </widget>
+                           </item>
+                           <item>
+                            <widget class="QPushButton" name="mergeRemoveButton">
+                             <property name="text"><string>-</string></property>
+                            </widget>
+                           </item>
+                           <item>
+                            <spacer name="mergeSideButtonSpacer">
+                             <property name="orientation"><enum>Qt::Orientation::Vertical</enum></property>
+                             <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+                            </spacer>
+                           </item>
+                          </layout>
+                         </item>
+                        </layout>
+                       </item>
+                       <item>
+                        <layout class="QHBoxLayout" name="mergeAddLayout">
+                         <item>
+                          <widget class="QPushButton" name="mergeAddCurrentButton">
+                           <property name="text"><string>Add Current File</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="mergeAddFilesButton">
+                           <property name="text"><string>Add Files...</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <spacer name="mergeAddSpacer">
+                           <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+                           <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+                          </spacer>
+                         </item>
+                        </layout>
+                       </item>
+                       <item>
+                        <layout class="QHBoxLayout" name="mergeSeparatorLayout">
+                         <item>
+                          <widget class="QLabel" name="mergeSeparatorLabel">
+                           <property name="text"><string>Separator between files:</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QLineEdit" name="mergeSeparatorEdit">
+                           <property name="text"><string>\n</string></property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </item>
+                       <item>
+                        <layout class="QHBoxLayout" name="mergeActionLayout">
+                         <item>
+                          <spacer name="mergeLSpacer">
+                           <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+                           <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+                          </spacer>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="mergeButton">
+                           <property name="text"><string>Merge Files</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <spacer name="mergeRSpacer">
+                           <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+                           <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+                          </spacer>
+                         </item>
+                        </layout>
+                       </item>
+                       <item>
+                        <spacer name="mergeBottomSpacer">
+                         <property name="orientation"><enum>Qt::Orientation::Vertical</enum></property>
+                         <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+                        </spacer>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+               <widget class="QWidget" name="findTab">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <attribute name="title">
+                 <string>Find/Replace</string>
+                </attribute>
+                <layout class="QHBoxLayout" name="horizontalLayout_7">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QScrollArea" name="findScrollArea">
+                   <property name="frameShape">
+                    <enum>QFrame::Shape::NoFrame</enum>
+                   </property>
+                   <property name="widgetResizable">
+                    <bool>true</bool>
+                   </property>
+                   <widget class="QWidget" name="findScrollContents">
+                    <property name="geometry">
+                     <rect>
+                      <x>0</x>
+                      <y>0</y>
+                      <width>591</width>
+                      <height>315</height>
+                     </rect>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_4">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item>
+                      <layout class="QVBoxLayout" name="verticalLayout">
                        <property name="leftMargin">
-                        <number>0</number>
+                        <number>6</number>
                        </property>
                        <property name="topMargin">
-                        <number>0</number>
+                        <number>6</number>
                        </property>
                        <property name="rightMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="bottomMargin">
-                        <number>0</number>
+                        <number>6</number>
                        </property>
                        <item>
-                        <widget class="QWidget" name="cleanScrollContentsContainer" native="true">
+                        <widget class="QLabel" name="findLabel">
+                         <property name="text">
+                          <string>Find:</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QWidget" name="findWidget" native="true">
                          <property name="sizePolicy">
-                          <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                            <horstretch>0</horstretch>
                            <verstretch>0</verstretch>
                           </sizepolicy>
                          </property>
-                         <layout class="QVBoxLayout" name="cleanScrollContentsContainerLayout">
-                          <property name="spacing">
-                           <number>0</number>
-                          </property>
-                          <property name="leftMargin">
-                           <number>0</number>
-                          </property>
-                          <property name="topMargin">
-                           <number>12</number>
-                          </property>
-                          <property name="rightMargin">
-                           <number>0</number>
-                          </property>
-                          <property name="bottomMargin">
-                           <number>0</number>
-                          </property>
-                          <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                           <widget class="QLabel" name="encodingConvertHeaderLabel">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <property name="font">
-                             <font>
-                              <bold>true</bold>
-                             </font>
-                            </property>
+                         <layout class="QHBoxLayout" name="horizontalLayout_8">
+                          <item>
+                           <widget class="QLineEdit" name="findLineEdit"/>
+                          </item>
+                          <item>
+                           <widget class="QPushButton" name="findButton">
                             <property name="text">
-                             <string>Convert Encoding to UTF-8</string>
-                            </property>
-                           </widget>
-                          </item>
-                          <item>
-                           <widget class="QWidget" name="convertEncodingContainer" native="true">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <layout class="QHBoxLayout" name="convertEncodingContainerLayout">
-                             <property name="leftMargin">
-                              <number>12</number>
-                             </property>
-                             <property name="rightMargin">
-                              <number>12</number>
-                             </property>
-                             <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                              <widget class="QLabel" name="currentFormatLabel">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="text">
-                                <string>Current format:</string>
-                               </property>
-                               <property name="textFormat">
-                                <enum>Qt::TextFormat::PlainText</enum>
-                               </property>
-                              </widget>
-                             </item>
-                             <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                              <widget class="QLabel" name="getEncodingFormatLabel">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="text">
-                                <string>[GET ENCODING]</string>
-                               </property>
-                              </widget>
-                             </item>
-                             <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                              <widget class="QPushButton" name="convertEncodingButton">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="text">
-                                <string>Convert</string>
-                               </property>
-                              </widget>
-                             </item>
-                            </layout>
-                           </widget>
-                          </item>
-                          <item>
-                           <widget class="Line" name="line">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <property name="orientation">
-                             <enum>Qt::Orientation::Horizontal</enum>
-                            </property>
-                           </widget>
-                          </item>
-                          <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                           <widget class="QLabel" name="formattingOptionsHeaderLabel">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <property name="font">
-                             <font>
-                              <bold>true</bold>
-                             </font>
-                            </property>
-                            <property name="text">
-                             <string>Formatting Options</string>
-                            </property>
-                            <property name="margin">
-                             <number>6</number>
-                            </property>
-                           </widget>
-                          </item>
-                          <item>
-                           <widget class="QWidget" name="formatOptionsContainer" native="true">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <layout class="QGridLayout" name="formatOptionsContainerLayout">
-                             <property name="leftMargin">
-                              <number>12</number>
-                             </property>
-                             <property name="topMargin">
-                              <number>6</number>
-                             </property>
-                             <property name="rightMargin">
-                              <number>0</number>
-                             </property>
-                             <property name="bottomMargin">
-                              <number>12</number>
-                             </property>
-                             <property name="horizontalSpacing">
-                              <number>0</number>
-                             </property>
-                             <property name="verticalSpacing">
-                              <number>6</number>
-                             </property>
-                             <item row="2" column="0">
-                              <widget class="QCheckBox" name="removeTabsCheckBox">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="toolTip">
-                                <string>Remove tabs and spaces at the beginning of paragraphs</string>
-                               </property>
-                               <property name="text">
-                                <string>Remove tabs</string>
-                               </property>
-                              </widget>
-                             </item>
-                             <item row="0" column="0">
-                              <widget class="QCheckBox" name="trimWhiteSpaceCheckBox">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="toolTip">
-                                <string>Remove extra linebreaks at beginning and end of document. Remove spaces and tabs at the beginning and ends of paragraphs.</string>
-                               </property>
-                               <property name="layoutDirection">
-                                <enum>Qt::LayoutDirection::LeftToRight</enum>
-                               </property>
-                               <property name="text">
-                                <string>Trim whitespace</string>
-                               </property>
-                              </widget>
-                             </item>
-                             <item row="1" column="0">
-                              <widget class="QCheckBox" name="cleanWhiteSpaceCheckBox">
-                               <property name="sizePolicy">
-                                <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-                                 <horstretch>0</horstretch>
-                                 <verstretch>0</verstretch>
-                                </sizepolicy>
-                               </property>
-                               <property name="toolTip">
-                                <string>Removes extra whitespace between words, i.e. convert two spaces to one space</string>
-                               </property>
-                               <property name="text">
-                                <string>Clean whitespace</string>
-                               </property>
-                              </widget>
-                             </item>
-                            </layout>
-                           </widget>
-                          </item>
-                          <item>
-                           <widget class="Line" name="line_2">
-                            <property name="sizePolicy">
-                             <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-                              <horstretch>0</horstretch>
-                              <verstretch>0</verstretch>
-                             </sizepolicy>
-                            </property>
-                            <property name="orientation">
-                             <enum>Qt::Orientation::Horizontal</enum>
+                             <string>Find Next</string>
                             </property>
                            </widget>
                           </item>
                          </layout>
                         </widget>
                        </item>
-                      </layout>
-                     </widget>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                 <widget class="QWidget" name="mergeTab">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <attribute name="title">
-                   <string>Merge</string>
-                  </attribute>
-                  <layout class="QHBoxLayout" name="horizontalLayout_3">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="QScrollArea" name="mergeScrollArea">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="frameShape">
-                      <enum>QFrame::Shape::NoFrame</enum>
-                     </property>
-                     <property name="widgetResizable">
-                      <bool>true</bool>
-                     </property>
-                     <widget class="QWidget" name="mergeScrollContents">
-                      <property name="geometry">
-                       <rect>
-                        <x>0</x>
-                        <y>0</y>
-                        <width>591</width>
-                        <height>315</height>
-                       </rect>
-                      </property>
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <layout class="QHBoxLayout" name="horizontalLayout_6">
-                       <property name="spacing">
-                        <number>0</number>
-                       </property>
-                       <property name="leftMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="topMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="rightMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="bottomMargin">
-                        <number>0</number>
-                       </property>
                        <item>
-                        <layout class="QVBoxLayout" name="mergeMainLayout">
-                         <property name="spacing"><number>6</number></property>
-                         <property name="leftMargin"><number>8</number></property>
-                         <property name="topMargin"><number>8</number></property>
-                         <property name="rightMargin"><number>8</number></property>
-                         <property name="bottomMargin"><number>8</number></property>
-                         <item>
-                          <widget class="QLabel" name="mergeFilesLabel">
-                           <property name="text"><string>Files to Merge:</string></property>
-                          </widget>
-                         </item>
-                         <item>
-                          <layout class="QHBoxLayout" name="mergeListLayout">
-                           <item>
-                            <widget class="QListWidget" name="mergeFileList"/>
-                           </item>
-                           <item>
-                            <layout class="QVBoxLayout" name="mergeSideButtonLayout">
-                             <item>
-                              <widget class="QPushButton" name="mergeMoveUpButton">
-                               <property name="text"><string>↑</string></property>
-                              </widget>
-                             </item>
-                             <item>
-                              <widget class="QPushButton" name="mergeMoveDownButton">
-                               <property name="text"><string>↓</string></property>
-                              </widget>
-                             </item>
-                             <item>
-                              <widget class="QPushButton" name="mergeRemoveButton">
-                               <property name="text"><string>-</string></property>
-                              </widget>
-                             </item>
-                             <item>
-                              <spacer name="mergeSideButtonSpacer">
-                               <property name="orientation"><enum>Qt::Orientation::Vertical</enum></property>
-                               <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
-                              </spacer>
-                             </item>
-                            </layout>
-                           </item>
-                          </layout>
-                         </item>
-                         <item>
-                          <layout class="QHBoxLayout" name="mergeAddLayout">
-                           <item>
-                            <widget class="QPushButton" name="mergeAddCurrentButton">
-                             <property name="text"><string>Add Current File</string></property>
-                            </widget>
-                           </item>
-                           <item>
-                            <widget class="QPushButton" name="mergeAddFilesButton">
-                             <property name="text"><string>Add Files...</string></property>
-                            </widget>
-                           </item>
-                           <item>
-                            <spacer name="mergeAddSpacer">
-                             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
-                             <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
-                            </spacer>
-                           </item>
-                          </layout>
-                         </item>
-                         <item>
-                          <layout class="QHBoxLayout" name="mergeSeparatorLayout">
-                           <item>
-                            <widget class="QLabel" name="mergeSeparatorLabel">
-                             <property name="text"><string>Separator between files:</string></property>
-                            </widget>
-                           </item>
-                           <item>
-                            <widget class="QLineEdit" name="mergeSeparatorEdit">
-                             <property name="text"><string>\n</string></property>
-                            </widget>
-                           </item>
-                          </layout>
-                         </item>
-                         <item>
-                          <layout class="QHBoxLayout" name="mergeActionLayout">
-                           <item>
-                            <spacer name="mergeLSpacer">
-                             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
-                             <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
-                            </spacer>
-                           </item>
-                           <item>
-                            <widget class="QPushButton" name="mergeButton">
-                             <property name="text"><string>Merge Files</string></property>
-                            </widget>
-                           </item>
-                           <item>
-                            <spacer name="mergeRSpacer">
-                             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
-                             <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
-                            </spacer>
-                           </item>
-                          </layout>
-                         </item>
-                         <item>
-                          <spacer name="mergeBottomSpacer">
-                           <property name="orientation"><enum>Qt::Orientation::Vertical</enum></property>
-                           <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
-                          </spacer>
-                         </item>
-                        </layout>
+                        <spacer name="verticalSpacer_2">
+                         <property name="orientation">
+                          <enum>Qt::Orientation::Vertical</enum>
+                         </property>
+                         <property name="sizeType">
+                          <enum>QSizePolicy::Policy::Fixed</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>20</width>
+                           <height>10</height>
+                          </size>
+                         </property>
+                        </spacer>
+                       </item>
+                       <item>
+                        <widget class="QLabel" name="replaceLabel">
+                         <property name="text">
+                          <string>Replace with:</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QWidget" name="replaceWidget" native="true">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <layout class="QHBoxLayout" name="horizontalLayout_9">
+                          <item>
+                           <widget class="QLineEdit" name="replaceLineEdit"/>
+                          </item>
+                          <item>
+                           <widget class="QPushButton" name="replaceButton">
+                            <property name="sizePolicy">
+                             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                              <horstretch>0</horstretch>
+                              <verstretch>0</verstretch>
+                             </sizepolicy>
+                            </property>
+                            <property name="text">
+                             <string>Replace</string>
+                            </property>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QWidget" name="widget" native="true">
+                         <layout class="QHBoxLayout" name="horizontalLayout_10">
+                          <item alignment="Qt::AlignmentFlag::AlignHCenter">
+                           <widget class="QPushButton" name="replaceAllButton">
+                            <property name="text">
+                             <string>Replace All</string>
+                            </property>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                       <item>
+                        <spacer name="verticalSpacer">
+                         <property name="orientation">
+                          <enum>Qt::Orientation::Vertical</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>20</width>
+                           <height>40</height>
+                          </size>
+                         </property>
+                        </spacer>
                        </item>
                       </layout>
-                     </widget>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                 <widget class="QWidget" name="findTab">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <attribute name="title">
-                   <string>Find/Replace</string>
-                  </attribute>
-                  <layout class="QHBoxLayout" name="horizontalLayout_7">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="QScrollArea" name="findScrollArea">
-                     <property name="frameShape">
-                      <enum>QFrame::Shape::NoFrame</enum>
-                     </property>
-                     <property name="widgetResizable">
-                      <bool>true</bool>
-                     </property>
-                     <widget class="QWidget" name="findScrollContents">
-                      <property name="geometry">
-                       <rect>
-                        <x>0</x>
-                        <y>0</y>
-                        <width>591</width>
-                        <height>315</height>
-                       </rect>
-                      </property>
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <layout class="QHBoxLayout" name="horizontalLayout_4">
-                       <property name="leftMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="topMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="rightMargin">
-                        <number>0</number>
-                       </property>
-                       <property name="bottomMargin">
-                        <number>0</number>
-                       </property>
-                       <item>
-                        <layout class="QVBoxLayout" name="verticalLayout">
-                         <property name="leftMargin">
-                          <number>6</number>
-                         </property>
-                         <property name="topMargin">
-                          <number>6</number>
-                         </property>
-                         <property name="rightMargin">
-                          <number>6</number>
-                         </property>
-                         <item>
-                          <widget class="QLabel" name="findLabel">
-                           <property name="text">
-                            <string>Find:</string>
-                           </property>
-                          </widget>
-                         </item>
-                         <item>
-                          <widget class="QWidget" name="findWidget" native="true">
-                           <property name="sizePolicy">
-                            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                             <horstretch>0</horstretch>
-                             <verstretch>0</verstretch>
-                            </sizepolicy>
-                           </property>
-                           <layout class="QHBoxLayout" name="horizontalLayout_8">
-                            <item>
-                             <widget class="QLineEdit" name="findLineEdit"/>
-                            </item>
-                            <item>
-                             <widget class="QPushButton" name="findButton">
-                              <property name="text">
-                               <string>Find Next</string>
-                              </property>
-                             </widget>
-                            </item>
-                           </layout>
-                          </widget>
-                         </item>
-                         <item>
-                          <spacer name="verticalSpacer_2">
-                           <property name="orientation">
-                            <enum>Qt::Orientation::Vertical</enum>
-                           </property>
-                           <property name="sizeType">
-                            <enum>QSizePolicy::Policy::Fixed</enum>
-                           </property>
-                           <property name="sizeHint" stdset="0">
-                            <size>
-                             <width>20</width>
-                             <height>10</height>
-                            </size>
-                           </property>
-                          </spacer>
-                         </item>
-                         <item>
-                          <widget class="QLabel" name="replaceLabel">
-                           <property name="text">
-                            <string>Replace with:</string>
-                           </property>
-                          </widget>
-                         </item>
-                         <item>
-                          <widget class="QWidget" name="replaceWidget" native="true">
-                           <property name="sizePolicy">
-                            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                             <horstretch>0</horstretch>
-                             <verstretch>0</verstretch>
-                            </sizepolicy>
-                           </property>
-                           <layout class="QHBoxLayout" name="horizontalLayout_9">
-                            <item>
-                             <widget class="QLineEdit" name="replaceLineEdit"/>
-                            </item>
-                            <item>
-                             <widget class="QPushButton" name="replaceButton">
-                              <property name="sizePolicy">
-                               <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-                                <horstretch>0</horstretch>
-                                <verstretch>0</verstretch>
-                               </sizepolicy>
-                              </property>
-                              <property name="text">
-                               <string>Replace</string>
-                              </property>
-                             </widget>
-                            </item>
-                           </layout>
-                          </widget>
-                         </item>
-                         <item>
-                          <widget class="QWidget" name="widget" native="true">
-                           <layout class="QHBoxLayout" name="horizontalLayout_10">
-                            <item alignment="Qt::AlignmentFlag::AlignHCenter">
-                             <widget class="QPushButton" name="replaceAllButton">
-                              <property name="text">
-                               <string>Replace All</string>
-                              </property>
-                             </widget>
-                            </item>
-                           </layout>
-                          </widget>
-                         </item>
-                         <item>
-                          <spacer name="verticalSpacer">
-                           <property name="orientation">
-                            <enum>Qt::Orientation::Vertical</enum>
-                           </property>
-                           <property name="sizeHint" stdset="0">
-                            <size>
-                             <width>20</width>
-                             <height>40</height>
-                            </size>
-                           </property>
-                          </spacer>
-                         </item>
-                        </layout>
-                       </item>
-                      </layout>
-                     </widget>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="verticalLayoutWidget">
-              <layout class="QVBoxLayout" name="fileTreeLayout" stretch="0">
-               <property name="spacing">
-                <number>0</number>
+                     </item>
+                    </layout>
+                   </widget>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </widget>
+             </item>
+             <item>
+              <widget class="QTreeView" name="fileTreeView">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
-               <item>
-                <widget class="QTreeView" name="fileTreeView">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::Shape::StyledPanel</enum>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </widget>
+               <property name="frameShape">
+                <enum>QFrame::Shape::StyledPanel</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>

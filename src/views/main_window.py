@@ -203,10 +203,6 @@ class MainWindow:
         self._main_splitter = _require(
             self.ui.findChild(QSplitter, "mainSplitter"), "mainSplitter"
         )
-        self._left_splitter = _require(
-            self.ui.findChild(QSplitter, "leftPanelSplitter"), "leftPanelSplitter"
-        )
-
         # Merge tab widgets
         self._merge_file_list = _require(
             self.ui.findChild(QListWidget, "mergeFileList"), "mergeFileList"
@@ -255,6 +251,11 @@ class MainWindow:
 
     def _connect_signals(self) -> None:
         """Wire UI events to ViewModel slots and ViewModel signals to UI handlers."""
+        # Tab widget: resize to current tab's content height so shorter tabs
+        # (Clean) don't show dead space reserved for taller tabs (Merge/Find).
+        self._tab_widget.currentChanged.connect(self._on_tab_changed)
+        self._on_tab_changed(self._tab_widget.currentIndex())
+
         # File tree → load file (directories are filtered inside the slot)
         self._file_tree_view.clicked.connect(self._on_tree_item_clicked)
 
@@ -343,6 +344,21 @@ class MainWindow:
         f3.activated.connect(self._on_find_clicked)
 
     # ---------------------------------------------------------- user actions
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Cap tab widget height to the current page's content.
+
+        QTabWidget internally uses QStackedWidget whose sizeHint() always
+        returns the max of ALL children — ignoring per-page size policies.
+        setMaximumHeight is the only reliable way to shrink the widget for
+        shorter pages (Clean tab) while letting taller pages expand.
+        """
+        page = self._tab_widget.widget(index)
+        if page is None:
+            return
+        tab_bar_h = self._tab_widget.tabBar().sizeHint().height()
+        page_h = page.sizeHint().height()
+        self._tab_widget.setMaximumHeight(tab_bar_h + page_h)
 
     def _focus_find_edit(self) -> None:
         """Switch to Find/Replace tab and focus the find field (Ctrl+F target)."""
@@ -555,8 +571,6 @@ class MainWindow:
             self.ui.restoreGeometry(geometry)
         if main_state := settings.value("splitter/main"):
             self._main_splitter.restoreState(main_state)
-        if left_state := settings.value("splitter/left"):
-            self._left_splitter.restoreState(left_state)
 
     def _save_settings(self) -> None:
         """Save window geometry and splitter positions to QSettings.
@@ -566,7 +580,6 @@ class MainWindow:
         settings = QSettings()
         settings.setValue("window/geometry", self.ui.saveGeometry())
         settings.setValue("splitter/main", self._main_splitter.saveState())
-        settings.setValue("splitter/left", self._left_splitter.saveState())
 
     def _apply_preferences(self) -> None:
         """Apply user preferences from QSettings to the editor.
