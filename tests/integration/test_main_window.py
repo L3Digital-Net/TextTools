@@ -4,10 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.utils.constants import APP_VERSION
-
 from src.models.cleaning_options import CleaningOptions
 from src.models.text_document import TextDocument
+from src.utils.constants import APP_VERSION
 from src.viewmodels.main_viewmodel import MainViewModel
 from src.views.main_window import MainWindow
 
@@ -122,7 +121,7 @@ class TestOrphanWidgets:
 
 class TestMergeTab:
     def test_merge_tab_has_expected_widgets(self, window):
-        from PySide6.QtWidgets import QListWidget, QPushButton, QLineEdit
+        from PySide6.QtWidgets import QLineEdit, QListWidget, QPushButton
 
         assert window.ui.findChild(QListWidget, "mergeFileList") is not None
         assert window.ui.findChild(QPushButton, "mergeButton") is not None
@@ -154,6 +153,7 @@ class TestWindowShow:
 class TestLoadUiErrors:
     def test_raises_if_ui_file_unreadable(self, monkeypatch, qapp):
         from unittest.mock import MagicMock
+
         from src.views.main_window import MainWindow
 
         monkeypatch.setattr("src.views.main_window.QFile.open", lambda *_: False)
@@ -162,6 +162,7 @@ class TestLoadUiErrors:
 
     def test_raises_if_loader_returns_none(self, monkeypatch, qapp):
         from unittest.mock import MagicMock
+
         from src.views.main_window import MainWindow
 
         monkeypatch.setattr("src.views.main_window.QUiLoader.load", lambda *_: None)
@@ -671,6 +672,7 @@ class TestPreferencesIntegration:
     def test_font_size_applied_to_editor(self, window):
         """_apply_preferences sets QPlainTextEdit font size from QSettings."""
         from PySide6.QtCore import QSettings
+
         from src.views.preferences_dialog import KEY_FONT_SIZE
 
         QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_FONT_SIZE, 20)
@@ -681,6 +683,7 @@ class TestPreferencesIntegration:
         """_apply_preferences enables WidgetWidth wrap when KEY_WORD_WRAP is True."""
         from PySide6.QtCore import QSettings
         from PySide6.QtWidgets import QPlainTextEdit
+
         from src.views.preferences_dialog import KEY_WORD_WRAP
 
         QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(
@@ -704,6 +707,7 @@ class TestPreferencesIntegration:
     def test_dark_theme_changes_palette(self, window, qapp):
         """_apply_preferences sets a dark Window colour when theme='dark'."""
         from PySide6.QtCore import QSettings
+
         from src.views.preferences_dialog import KEY_THEME
 
         QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_THEME, "dark")
@@ -715,6 +719,7 @@ class TestPreferencesIntegration:
     def test_preferences_persisted_across_sessions(self, mock_file_svc, mock_text_svc):
         """Font size written to settings is applied when a new MainWindow starts."""
         from PySide6.QtCore import QSettings
+
         from src.viewmodels.main_viewmodel import MainViewModel
         from src.views.main_window import MainWindow
         from src.views.preferences_dialog import KEY_FONT_SIZE

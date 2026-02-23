@@ -8,6 +8,7 @@ QSettings keys written here must stay in sync with MainWindow._apply_preferences
 """
 
 import os
+from typing import TypeVar
 
 from PySide6.QtCore import QDir, QFile, QObject, QSettings, Signal
 from PySide6.QtUiTools import QUiLoader
@@ -22,8 +23,6 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QWidget,
 )
-
-from typing import TypeVar
 
 _W = TypeVar("_W")
 
