@@ -106,12 +106,14 @@ class TestDetectEncodingNormalization:
         is always safe for ASCII content.
         """
         from src.services.file_service import _detect_encoding
+
         raw = b"hello world"  # pure ASCII
         assert _detect_encoding(raw) == "utf-8"
 
     def test_non_ascii_utf8_content_returns_utf8(self):
         """Non-ASCII UTF-8 bytes (é, ñ) must return utf-8."""
         from src.services.file_service import _detect_encoding
+
         raw = "café résumé naïve".encode("utf-8")
         assert _detect_encoding(raw) == "utf-8"
 
@@ -126,7 +128,9 @@ class TestAtomicSaveCleanup:
             raise OSError("simulated disk full")
 
         monkeypatch.setattr("src.services.file_service.os.replace", _failing_replace)
-        monkeypatch.setattr("src.services.file_service.os.unlink", lambda p: removed.append(p))
+        monkeypatch.setattr(
+            "src.services.file_service.os.unlink", lambda p: removed.append(p)
+        )
 
         doc = TextDocument(filepath=str(tmp_path / "out.txt"), content="data")
         with pytest.raises(OSError, match="simulated disk full"):

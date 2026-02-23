@@ -263,7 +263,9 @@ class TestMergeQueue:
             vm.move_merge_item(2, 0)  # move c before a
         assert blocker.args[0] == ["c.txt", "a.txt", "b.txt"]
 
-    def test_execute_merge_emits_document_loaded(self, vm, mock_file_svc, mock_text_svc, qtbot):
+    def test_execute_merge_emits_document_loaded(
+        self, vm, mock_file_svc, mock_text_svc, qtbot
+    ):
         mock_text_svc.merge_documents.return_value = "merged content"
         vm.add_files_to_merge(["/tmp/a.txt", "/tmp/b.txt"])
         with qtbot.waitSignal(vm.document_loaded, timeout=1000) as blocker:

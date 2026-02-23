@@ -105,20 +105,25 @@ class TestWindowTitle:
 class TestOrphanWidgets:
     def test_unnamed_checkboxes_not_present(self, window):
         from PySide6.QtWidgets import QCheckBox
+
         for name in ("checkBox_2", "checkBox_4", "checkBox_6"):
-            assert window.ui.findChild(QCheckBox, name) is None, \
-                f"Orphan widget {name!r} should not exist"
+            assert (
+                window.ui.findChild(QCheckBox, name) is None
+            ), f"Orphan widget {name!r} should not exist"
 
     def test_text_label_placeholders_not_present(self, window):
         from PySide6.QtWidgets import QLabel
+
         for name in ("label", "label_2"):
-            assert window.ui.findChild(QLabel, name) is None, \
-                f"Placeholder label {name!r} should not exist"
+            assert (
+                window.ui.findChild(QLabel, name) is None
+            ), f"Placeholder label {name!r} should not exist"
 
 
 class TestMergeTab:
     def test_merge_tab_has_expected_widgets(self, window):
         from PySide6.QtWidgets import QListWidget, QPushButton, QLineEdit
+
         assert window.ui.findChild(QListWidget, "mergeFileList") is not None
         assert window.ui.findChild(QPushButton, "mergeButton") is not None
         assert window.ui.findChild(QPushButton, "mergeAddCurrentButton") is not None
@@ -151,9 +156,7 @@ class TestLoadUiErrors:
         from unittest.mock import MagicMock
         from src.views.main_window import MainWindow
 
-        monkeypatch.setattr(
-            "src.views.main_window.QFile.open", lambda *_: False
-        )
+        monkeypatch.setattr("src.views.main_window.QFile.open", lambda *_: False)
         with pytest.raises(RuntimeError, match="Cannot open UI file"):
             MainWindow(MagicMock())
 
@@ -161,9 +164,7 @@ class TestLoadUiErrors:
         from unittest.mock import MagicMock
         from src.views.main_window import MainWindow
 
-        monkeypatch.setattr(
-            "src.views.main_window.QUiLoader.load", lambda *_: None
-        )
+        monkeypatch.setattr("src.views.main_window.QUiLoader.load", lambda *_: None)
         with pytest.raises(RuntimeError, match="QUiLoader failed"):
             MainWindow(MagicMock())
 
@@ -198,9 +199,7 @@ class TestCleanHandler:
         with qtbot.waitSignal(window._viewmodel.content_updated, timeout=1000):
             window._trim_cb.setChecked(True)
 
-    def test_clean_options_reflect_checkbox_states(
-        self, window, mock_text_svc, qtbot
-    ):
+    def test_clean_options_reflect_checkbox_states(self, window, mock_text_svc, qtbot):
         window._viewmodel.load_file("/tmp/test.txt")
         qtbot.wait(10)
         window._clean_cb.setChecked(False)
@@ -355,6 +354,7 @@ class TestDefaultTab:
     def test_opens_on_clean_tab(self, window):
         """Tab widget must default to index 0 (Clean tab), not 2 (Find/Replace)."""
         from PySide6.QtWidgets import QTabWidget
+
         tab = window.ui.findChild(QTabWidget, "tabWidget")
         assert tab is not None
         assert tab.currentIndex() == 0
@@ -377,6 +377,7 @@ class TestKeyboardShortcuts:
     def _shortcut_for(self, window, key_string: str):
         """Return the QShortcut whose key matches key_string, or raise."""
         from PySide6.QtGui import QKeySequence, QShortcut
+
         target = QKeySequence(key_string)
         shortcuts = window.ui.findChildren(QShortcut)
         for sc in shortcuts:
@@ -387,6 +388,7 @@ class TestKeyboardShortcuts:
     def test_ctrl_f_switches_to_find_replace_tab(self, window, qtbot):
         """Ctrl+F switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
         from PySide6.QtWidgets import QTabWidget
+
         tab = window.ui.findChild(QTabWidget, "tabWidget")
         assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
         sc = self._shortcut_for(window, "Ctrl+F")
@@ -397,6 +399,7 @@ class TestKeyboardShortcuts:
     def test_ctrl_h_switches_to_find_replace_tab(self, window, qtbot):
         """Ctrl+H switches to the Find/Replace tab (tab index matches _find_replace_tab_index)."""
         from PySide6.QtWidgets import QTabWidget
+
         tab = window.ui.findChild(QTabWidget, "tabWidget")
         assert tab.currentIndex() == 0, "precondition: starts on Clean tab"
         sc = self._shortcut_for(window, "Ctrl+H")
@@ -425,6 +428,7 @@ class TestConvertEncodingHandler:
     def test_convert_button_calls_viewmodel(self, window, qtbot):
         """Clicking the Convert button must call viewmodel.convert_to_utf8."""
         from unittest.mock import patch
+
         window._plain_text_edit.setPlainText("hello")
         with patch.object(window._viewmodel, "convert_to_utf8") as mock_convert:
             window._convert_button.click()
@@ -473,6 +477,7 @@ class TestStatusBarCursorPosition:
 def _real_save_svc(mock_file_svc):
     """Extends mock_file_svc with real FileService.save_file for disk-write assertions."""
     from src.services.file_service import FileService
+
     mock_file_svc.save_file.side_effect = FileService().save_file
     return mock_file_svc
 
@@ -519,6 +524,7 @@ class TestConfigPersistence:
         bodies can construct a matching QSettings instance to read/clear it.
         """
         from PySide6.QtCore import QSettings
+
         tmp_ini = str(tmp_path / "test_settings.ini")
         monkeypatch.setattr(
             "src.views.main_window.QSettings",
@@ -530,6 +536,7 @@ class TestConfigPersistence:
     def test_save_settings_writes_geometry(self, window, qtbot):
         """_save_settings must write window/geometry to QSettings."""
         from PySide6.QtCore import QSettings
+
         # Clear geometry in the same temp file the window will write to
         s = QSettings(self._tmp_ini, QSettings.Format.IniFormat)
         s.remove("window/geometry")
@@ -541,6 +548,7 @@ class TestConfigPersistence:
     def test_load_settings_does_not_raise_when_empty(self, window):
         """_load_settings must not raise when no settings have been saved."""
         from PySide6.QtCore import QSettings
+
         QSettings(self._tmp_ini, QSettings.Format.IniFormat).clear()
         window._load_settings()  # must not raise
 
@@ -562,7 +570,9 @@ class TestConfigPersistence:
 class TestMergeWorkflow:
     """Integration tests for the merge tab — real files, real ViewModel signals."""
 
-    def test_add_current_and_merge(self, window, mock_file_svc, mock_text_svc, tmp_path, qtbot):
+    def test_add_current_and_merge(
+        self, window, mock_file_svc, mock_text_svc, tmp_path, qtbot
+    ):
         """Load a file, add it to the merge list, merge it, verify editor content."""
         from PySide6.QtWidgets import QListWidget
 
@@ -601,7 +611,9 @@ class TestMergeWorkflow:
 
         assert window._plain_text_edit.toPlainText() == "aaa\nbbb"
 
-    def test_merge_tab_list_refreshes_on_add(self, window, mock_file_svc, tmp_path, qtbot):
+    def test_merge_tab_list_refreshes_on_add(
+        self, window, mock_file_svc, tmp_path, qtbot
+    ):
         """Adding a file to merge list refreshes the QListWidget display."""
         from PySide6.QtWidgets import QListWidget
 
@@ -631,7 +643,9 @@ class TestMergeWorkflow:
             "src.views.main_window.QMessageBox.critical",
             lambda *a, **kw: None,
         )
-        with qtbot.waitSignal(window._viewmodel.error_occurred, timeout=1000) as blocker:
+        with qtbot.waitSignal(
+            window._viewmodel.error_occurred, timeout=1000
+        ) as blocker:
             window._viewmodel.execute_merge()
         assert "No files in merge list" in blocker.args[0]
 
@@ -669,7 +683,9 @@ class TestPreferencesIntegration:
         from PySide6.QtWidgets import QPlainTextEdit
         from src.views.preferences_dialog import KEY_WORD_WRAP
 
-        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(KEY_WORD_WRAP, True)
+        QSettings(self._tmp_ini, QSettings.Format.IniFormat).setValue(
+            KEY_WORD_WRAP, True
+        )
         window._apply_preferences()
         assert (
             window._plain_text_edit.lineWrapMode()
@@ -682,8 +698,7 @@ class TestPreferencesIntegration:
 
         window._apply_preferences()  # no settings written — default False applies
         assert (
-            window._plain_text_edit.lineWrapMode()
-            == QPlainTextEdit.LineWrapMode.NoWrap
+            window._plain_text_edit.lineWrapMode() == QPlainTextEdit.LineWrapMode.NoWrap
         )
 
     def test_dark_theme_changes_palette(self, window, qapp):
@@ -714,6 +729,8 @@ class TestPreferencesIntegration:
         from unittest.mock import MagicMock
 
         mock_dlg = MagicMock()
-        monkeypatch.setattr("src.views.main_window.PreferencesDialog", lambda *_: mock_dlg)
+        monkeypatch.setattr(
+            "src.views.main_window.PreferencesDialog", lambda *_: mock_dlg
+        )
         window._on_action_preferences()
         mock_dlg.exec.assert_called_once()

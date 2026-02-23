@@ -30,7 +30,9 @@ _W = TypeVar("_W")
 
 def _require(widget: "_W | None", name: str) -> "_W":
     if widget is None:
-        raise RuntimeError(f"Required widget '{name}' not found in preferences_dialog.ui")
+        raise RuntimeError(
+            f"Required widget '{name}' not found in preferences_dialog.ui"
+        )
     return widget
 
 
@@ -98,7 +100,8 @@ class PreferencesDialog(QObject):
             self.dialog.findChild(QCheckBox, "wordWrapCheckBox"), "wordWrapCheckBox"
         )
         self._line_numbers_cb = _require(
-            self.dialog.findChild(QCheckBox, "lineNumbersCheckBox"), "lineNumbersCheckBox"
+            self.dialog.findChild(QCheckBox, "lineNumbersCheckBox"),
+            "lineNumbersCheckBox",
         )
         self._theme_light_radio = _require(
             self.dialog.findChild(QRadioButton, "themeLightRadio"), "themeLightRadio"
@@ -161,7 +164,9 @@ class PreferencesDialog(QObject):
         settings.setValue(KEY_FONT_SIZE, self._font_size_spin.value())
         settings.setValue(KEY_WORD_WRAP, self._word_wrap_cb.isChecked())
         settings.setValue(KEY_LINE_NUMBERS, self._line_numbers_cb.isChecked())
-        settings.setValue(KEY_THEME, "dark" if self._theme_dark_radio.isChecked() else "light")
+        settings.setValue(
+            KEY_THEME, "dark" if self._theme_dark_radio.isChecked() else "light"
+        )
         settings.setValue(KEY_DEFAULT_DIR, self._default_dir_edit.text())
 
     def _on_apply_clicked(self) -> None:
