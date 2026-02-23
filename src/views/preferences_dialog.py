@@ -141,13 +141,15 @@ class PreferencesDialog(QObject):
             str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY]))
         )
         self._font_size_spin.setValue(
-            int(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE]))
+            int(str(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE])))
         )
         self._word_wrap_cb.setChecked(
-            settings.value(KEY_WORD_WRAP, DEFAULTS[KEY_WORD_WRAP], type=bool)
+            bool(settings.value(KEY_WORD_WRAP, DEFAULTS[KEY_WORD_WRAP], type=bool))
         )
         self._line_numbers_cb.setChecked(
-            settings.value(KEY_LINE_NUMBERS, DEFAULTS[KEY_LINE_NUMBERS], type=bool)
+            bool(
+                settings.value(KEY_LINE_NUMBERS, DEFAULTS[KEY_LINE_NUMBERS], type=bool)
+            )
         )
         theme = settings.value(KEY_THEME, DEFAULTS[KEY_THEME])
         self._theme_dark_radio.setChecked(theme == "dark")

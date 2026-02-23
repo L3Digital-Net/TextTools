@@ -596,7 +596,7 @@ class MainWindow:
 
         # Font
         family = str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY]))
-        size = int(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE]))
+        size = int(str(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE])))
         self._plain_text_edit.setFont(QFont(family, size))
 
         # Word wrap
@@ -609,7 +609,7 @@ class MainWindow:
 
         # Theme — Fusion style with a dark palette; restore system default for light.
         theme = str(settings.value(KEY_THEME, DEFAULTS[KEY_THEME]))
-        app = QApplication.instance()
+        app = cast(QApplication, QApplication.instance())
         if app is not None:
             if theme == "dark":
                 app.setStyle("Fusion")
