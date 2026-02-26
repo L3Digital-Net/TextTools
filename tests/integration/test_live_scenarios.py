@@ -87,9 +87,7 @@ class TestSaveRoundTrip:
 
 
 class TestCleaningWithRealService:
-    def test_trim_removes_trailing_spaces_and_blank_lines(
-        self, app, tmp_path, qtbot
-    ):
+    def test_trim_removes_trailing_spaces_and_blank_lines(self, app, tmp_path, qtbot):
         # trim_whitespace strips trailing spaces per line and removes trailing
         # blank lines, but does NOT strip leading spaces.
         f = tmp_path / "trim.txt"
@@ -148,9 +146,7 @@ class TestFindReplaceWithRealContent:
         app._on_find_clicked()  # wraps to start, then finds
         assert app._plain_text_edit.textCursor().selectedText() == "quick"
 
-    def test_replace_all_updates_editor_and_emits_signal(
-        self, app, tmp_path, qtbot
-    ):
+    def test_replace_all_updates_editor_and_emits_signal(self, app, tmp_path, qtbot):
         f = tmp_path / "rep.txt"
         f.write_text("cat cat cat", encoding="utf-8")
         app._file_name_edit.setText(str(f))

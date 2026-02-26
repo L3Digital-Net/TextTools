@@ -2,7 +2,7 @@
 
 A PySide6 desktop application for text processing on Linux. Provides encoding conversion (to UTF-8), text formatting/cleaning, find/replace, and file management through a split-panel interface.
 
-**Status**: v0.2.0 — core features implemented and tested. Encoding conversion is stubbed; find/replace, text cleaning, and file I/O are fully functional. See `DESIGN.md` for the full specification.
+**Status**: v0.3.0 — core features implemented and tested. Encoding conversion, find/replace, text cleaning, and file I/O are fully functional. See `DESIGN.md` for the full specification.
 
 ## Stack
 

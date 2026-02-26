@@ -8,6 +8,7 @@ QSettings keys written here must stay in sync with MainWindow._apply_preferences
 """
 
 import os
+from typing import TypeVar
 
 from PySide6.QtCore import QDir, QFile, QObject, QSettings, Signal
 from PySide6.QtUiTools import QUiLoader
@@ -23,14 +24,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from typing import TypeVar
-
 _W = TypeVar("_W")
 
 
 def _require(widget: "_W | None", name: str) -> "_W":
     if widget is None:
-        raise RuntimeError(f"Required widget '{name}' not found in preferences_dialog.ui")
+        raise RuntimeError(
+            f"Required widget '{name}' not found in preferences_dialog.ui"
+        )
     return widget
 
 
@@ -98,7 +99,8 @@ class PreferencesDialog(QObject):
             self.dialog.findChild(QCheckBox, "wordWrapCheckBox"), "wordWrapCheckBox"
         )
         self._line_numbers_cb = _require(
-            self.dialog.findChild(QCheckBox, "lineNumbersCheckBox"), "lineNumbersCheckBox"
+            self.dialog.findChild(QCheckBox, "lineNumbersCheckBox"),
+            "lineNumbersCheckBox",
         )
         self._theme_light_radio = _require(
             self.dialog.findChild(QRadioButton, "themeLightRadio"), "themeLightRadio"
@@ -139,13 +141,15 @@ class PreferencesDialog(QObject):
             str(settings.value(KEY_FONT_FAMILY, DEFAULTS[KEY_FONT_FAMILY]))
         )
         self._font_size_spin.setValue(
-            int(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE]))
+            int(str(settings.value(KEY_FONT_SIZE, DEFAULTS[KEY_FONT_SIZE])))
         )
         self._word_wrap_cb.setChecked(
-            settings.value(KEY_WORD_WRAP, DEFAULTS[KEY_WORD_WRAP], type=bool)
+            bool(settings.value(KEY_WORD_WRAP, DEFAULTS[KEY_WORD_WRAP], type=bool))
         )
         self._line_numbers_cb.setChecked(
-            settings.value(KEY_LINE_NUMBERS, DEFAULTS[KEY_LINE_NUMBERS], type=bool)
+            bool(
+                settings.value(KEY_LINE_NUMBERS, DEFAULTS[KEY_LINE_NUMBERS], type=bool)
+            )
         )
         theme = settings.value(KEY_THEME, DEFAULTS[KEY_THEME])
         self._theme_dark_radio.setChecked(theme == "dark")
@@ -161,7 +165,9 @@ class PreferencesDialog(QObject):
         settings.setValue(KEY_FONT_SIZE, self._font_size_spin.value())
         settings.setValue(KEY_WORD_WRAP, self._word_wrap_cb.isChecked())
         settings.setValue(KEY_LINE_NUMBERS, self._line_numbers_cb.isChecked())
-        settings.setValue(KEY_THEME, "dark" if self._theme_dark_radio.isChecked() else "light")
+        settings.setValue(
+            KEY_THEME, "dark" if self._theme_dark_radio.isChecked() else "light"
+        )
         settings.setValue(KEY_DEFAULT_DIR, self._default_dir_edit.text())
 
     def _on_apply_clicked(self) -> None:
